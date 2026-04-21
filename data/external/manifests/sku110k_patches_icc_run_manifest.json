@@ -1,0 +1,394 @@
+{
+  "bucket_cap": 25000,
+  "bucket_counts": {
+    "edge/dark": 852,
+    "edge/neutral": 6803,
+    "edge/normal": 25000,
+    "edge/saturated": 5714,
+    "flat/dark": 21673,
+    "flat/neutral": 18157,
+    "flat/normal": 11615,
+    "textured/dark": 22994,
+    "textured/neutral": 25000,
+    "textured/normal": 25000,
+    "textured/saturated": 25000
+  },
+  "created_unix": 1776812716.634715,
+  "image_error_count": 5,
+  "image_errors": [
+    {
+      "error": "OSError('broken data stream when reading image file')",
+      "path": "data/external/raw/sku110k/SKU110K_fixed/images/train_5822.jpg"
+    },
+    {
+      "error": "OSError('image file is truncated (14 bytes not processed)')",
+      "path": "data/external/raw/sku110k/SKU110K_fixed/images/test_274.jpg"
+    },
+    {
+      "error": "OSError('image file is truncated (10 bytes not processed)')",
+      "path": "data/external/raw/sku110k/SKU110K_fixed/images/train_924.jpg"
+    },
+    {
+      "error": "OSError('image file is truncated (23 bytes not processed)')",
+      "path": "data/external/raw/sku110k/SKU110K_fixed/images/train_4222.jpg"
+    },
+    {
+      "error": "OSError('image file is truncated (3 bytes not processed)')",
+      "path": "data/external/raw/sku110k/SKU110K_fixed/images/train_882.jpg"
+    }
+  ],
+  "max_per_image": 16,
+  "min_visible": 1.0,
+  "out_dir": "data/external/processed/sku110k_patches_icc",
+  "patch_size": 16,
+  "patches_written": 187808,
+  "quarantined": [],
+  "seed": 20260423,
+  "shards": [
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00000.jsonl",
+      "jsonl_sha256": "9db837d537992c2b77429a9b54a447db32f7bdbc6143de4d1cc312b7e61768cc",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00000.npz",
+      "npz_sha256": "5fd494e8dfdb410fd814121e6dceb0ead5c84f7b6a5eaf378ecf1e9be9c68084"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00001.jsonl",
+      "jsonl_sha256": "ffaa31130005f30c64c79afd489ff4f726f26da9048caa043ccd781f1aaddf03",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00001.npz",
+      "npz_sha256": "e3642189557e1ef653ac92d04988fbdd5d0fd09350eee09d8362f9c6619def25"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00002.jsonl",
+      "jsonl_sha256": "ef4f76cf3102735f8cb9faf4c5d33564a126b8d96f4129aa2d7e424b786fd3a2",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00002.npz",
+      "npz_sha256": "f02bf92d33c8d98acd07154e235f4d8187f9edc505f32d3dc2c99634f7209853"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00003.jsonl",
+      "jsonl_sha256": "bb2e3ea0491ec727a32b536d4db2f3ac222abb495621689c40fc4c8a318a4b07",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00003.npz",
+      "npz_sha256": "fa3a37f1fbb9b35ac05794e5fffe89a1928c15f35dc76ea8dfe081eb7debe1fa"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00004.jsonl",
+      "jsonl_sha256": "a36fb9c529bd94f02ff1c96b28403b592e92b94bc635b7ea7c7325bea5a98d1f",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00004.npz",
+      "npz_sha256": "fc5b28f2ae02fa01f473cb13f636556bb37992e5381997f0f3311d3ccab27290"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00005.jsonl",
+      "jsonl_sha256": "deacfe08ff5c924872e02a42a665a272fdc0483eafb43476edc623a326f41957",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00005.npz",
+      "npz_sha256": "dc1dbd981978f6887f8d5bcc2faf066ca8428c6430f199abfcf2cd5ebdeae872"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00006.jsonl",
+      "jsonl_sha256": "0ff3ed773755cce58063a8d45185509b52bb8878fc960f1229669a666fc4fe04",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00006.npz",
+      "npz_sha256": "e2d93dc6507eddab987d1086d02485822e95f6f930d137aecbdfa7b8c888adfd"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00007.jsonl",
+      "jsonl_sha256": "dabe5648cf56c39df5a38c36dd0ca568649c979e6159c6e93ba8782524ef5a72",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00007.npz",
+      "npz_sha256": "1653088b79d4434fed818ba2502863c49b6cab96ad11fbca4eaf1f6683a1ff2b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00008.jsonl",
+      "jsonl_sha256": "2855579aa7e88145c6b8cffa5656e295a55f9e3672f5e85fe793ccebe9f18712",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00008.npz",
+      "npz_sha256": "3b5ae10dc6fb82fb52a14bf816c779d6cbe3676bbd044970c445add6f8552416"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00009.jsonl",
+      "jsonl_sha256": "291227fea15fe10783771644b341c43c0e130acb7bbf0235d4c6ba6f02d7d655",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00009.npz",
+      "npz_sha256": "7819fefb391c31cb0875a9bb346b04f3b843692bd49dc6209f7aceba7737b6f6"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00010.jsonl",
+      "jsonl_sha256": "d5ef008a56f61325af5cb8294c055a1b352ab50d3b314a6c98b524e3d315f7a5",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00010.npz",
+      "npz_sha256": "4c70dfea2ad686bfda8975b590335503301918f219bc40cac639ff525e51e091"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00011.jsonl",
+      "jsonl_sha256": "eaea5d3f03297ff00e5d45bfb8f4cbf5ca7a7c834f955d14ace806d52e31f59d",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00011.npz",
+      "npz_sha256": "0cec647292153e6f41f219a2aa0c536c46cbfbb86e817bd4e90eda3f5676c619"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00012.jsonl",
+      "jsonl_sha256": "69eba5947577c9d80cfa53817b3ae971118c9126f41fedd39ed58621e8fcb066",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00012.npz",
+      "npz_sha256": "7cd3504732f813dbe1e597cf84b7dabaa6e43cee1da0f113b75902abc7e1b083"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00013.jsonl",
+      "jsonl_sha256": "0eb9cd90687218099151f98f093a14ffe4d07a839e45ebb49d14c4da906937ac",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00013.npz",
+      "npz_sha256": "02cd65e6878513ac1c01d75f3cf95f9b5ec4f3a55328d182e9698c985ea2bdc4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00014.jsonl",
+      "jsonl_sha256": "d44c5c600a2cdbc5e0d9b47c6ab78181e573927f32e59d710729a6db6d1303c1",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00014.npz",
+      "npz_sha256": "ed89dca904716fbe3d367a40672b0854b1edaaf7a77bdc18eb64b4d82af9a998"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00015.jsonl",
+      "jsonl_sha256": "c7e7fd641ea0fb34c3ab780fac4ec2484fad668dd58e6d57b7250ed9facde9f7",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00015.npz",
+      "npz_sha256": "e01c54d5a3c2072b049564be3b3624b4501b9bc0886b38343d4d0b18d8355d9f"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00016.jsonl",
+      "jsonl_sha256": "9b5c9459078cc6d605b6b82f95e1b5ccd32be0d175cf811a6cc4773988f150aa",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00016.npz",
+      "npz_sha256": "d9f8bf10853d85df99fb75c2651c07b1e4c9ea8a7799a1d803cae4bb84e0df3d"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00017.jsonl",
+      "jsonl_sha256": "206957755cb4df81e6eeaaf19ff989cb679db74312c981e985582b333c53f022",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00017.npz",
+      "npz_sha256": "df3c873c2517d225016b80aa01f4c9201bde992879c40e1d2190b42bdcc8bb2e"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00018.jsonl",
+      "jsonl_sha256": "0b6c438c231694a2852e21c195b7e89c702fcf6f73741d396871f631997a1802",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00018.npz",
+      "npz_sha256": "c098dc0178780dceb2831996e218f92d1061fbcbfcd23ee7dc0cb30eca3c931f"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00019.jsonl",
+      "jsonl_sha256": "a08795e90a507f5948c21f6c1c4bebef548da327c41c12adacac001e24f50e81",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00019.npz",
+      "npz_sha256": "76a6a0ee010ea6f94b57bfea3c9db7a11b9aae103dcf8f7eef3b504207264fd0"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00020.jsonl",
+      "jsonl_sha256": "837210da8c246da64bba4703cb5812c205aabd72147afba82bcf4fec79ddfe62",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00020.npz",
+      "npz_sha256": "f990175436a65fc06d4259567b223b1550a0dfefe262b8317f2231ec9757ed1b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00021.jsonl",
+      "jsonl_sha256": "7ba20fef4e6efd6576895db57cecb06e6b21a0a6f9553ee8cb413ca548f5d927",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00021.npz",
+      "npz_sha256": "becdb34ed37ea55188e591de707806eacae4125af2e4f0d3bfa4fb4921cf3a41"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00022.jsonl",
+      "jsonl_sha256": "1705136c47bc5c6f19f05343b17b8e8a7cce096222328e6050cd737d2553f9b8",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00022.npz",
+      "npz_sha256": "e11701e43a2c8308b503284d107bd063eda03f869dd0efb967c9296087cbfad1"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00023.jsonl",
+      "jsonl_sha256": "fa4e5276ff94fb7b33658e5946a9cab16dcc509a747754d664e888d12eecb954",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00023.npz",
+      "npz_sha256": "d1e6c6c2890256fbc69580b2bd0b887f36b04f7c9066696e7e799590170c9267"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00024.jsonl",
+      "jsonl_sha256": "85a7648849e73421180280f3f5c85b49ef0673257bc3c369dc67f374c8f07a59",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00024.npz",
+      "npz_sha256": "71889c6f1fc5a0d8f282e9e0d89e9c6ae8699cd7cf1710553aec6e9f1c8cbdaa"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00025.jsonl",
+      "jsonl_sha256": "8470a3d82189bd4edf9975f16c12a56aff8aecf88f240b6dd0b59a4ad75670b0",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00025.npz",
+      "npz_sha256": "8e62e10aa1672d33624a853d3ab981eb1256d825a49fb09d199be34aec276976"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00026.jsonl",
+      "jsonl_sha256": "9c36427440f13e54429b0247aa1dd8f789db5b50d236f3f49e0d7daa93dc9c27",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00026.npz",
+      "npz_sha256": "ef8a0ecb83d902e5469e39cc1f2ed10ea4d77b77f5cdcd5e956b2f392a143b09"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00027.jsonl",
+      "jsonl_sha256": "e03d919356d9b89a87620a431a7a8e0e3879ecaa21f240633996dfa86a3a3a52",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00027.npz",
+      "npz_sha256": "813990b7ddf6d795cc29e2f2ea1154681d810ac71aa88eecf29901529132f76b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00028.jsonl",
+      "jsonl_sha256": "0d98274d0fc8d46a710bdc22844731bbbd56000656858553b3bc9a2c3747f760",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00028.npz",
+      "npz_sha256": "985f2c128aaa11ce4bba4ceb7bb860b0a72c22724126ff0761a879c0bffd91e4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00029.jsonl",
+      "jsonl_sha256": "0ac3991636a575155c79ffae2b8481cbd1899d6b2857d697acdf028e04d23702",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00029.npz",
+      "npz_sha256": "583beec85e37b9ad62346d237d3953db77c701a8e4318548d44626a09b002395"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00030.jsonl",
+      "jsonl_sha256": "f8be442012cba230f65ca59454b03a6f5108c79ae7b55279609a36241c83d035",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00030.npz",
+      "npz_sha256": "2e64efd5112823aa92342efa4dc438757af142e3ffcec635f7a82d83b5f55ad2"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00031.jsonl",
+      "jsonl_sha256": "1060549bd2a3a4eb0e650af765d73678d938ccee41ded1e65b481557cd5dbe02",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00031.npz",
+      "npz_sha256": "a2256824fc94832736a7c45ad87591fbbdaa1e7407148de255aa4e6ba824dd73"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00032.jsonl",
+      "jsonl_sha256": "0b9e75ad72e344604872c4cae7019d541ccd45c54960ee48543b929b5cbc5f72",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00032.npz",
+      "npz_sha256": "56b0c45d21f40f361c7f934f1ee72381d4097dfcbfb1c10b400e0e392a4fa77a"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00033.jsonl",
+      "jsonl_sha256": "77565fdd0cdc2cf0d21df4acb82143808e8614c395c14c26dd1b226ca5cacc18",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00033.npz",
+      "npz_sha256": "01df9a71ac516b7d4b64daa055c0ced5eef62025ac02076c0142e987d52c255c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00034.jsonl",
+      "jsonl_sha256": "4fb19cdbe182bbfa51fda864c367a1bc9eead078afbea01ec26cc328b1ac36e8",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00034.npz",
+      "npz_sha256": "fc28a38d0e7a90c5d3e45bb4b40cddeb73fb973daba2195ed0047f6795be4617"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00035.jsonl",
+      "jsonl_sha256": "60b8ec4347221fef6c08b82b03fd2bb95b9df82c0d3e47cc5e97b61e44a616a2",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00035.npz",
+      "npz_sha256": "5fd42432562402478c9b8f17749bf1f1530eaac7502ef9bfe0253462f6f88516"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00036.jsonl",
+      "jsonl_sha256": "786c0a4493fae697b52b152434fe21a2e6359bcfc99e7a6b4a0c0c95e5402c7c",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00036.npz",
+      "npz_sha256": "deb55185007f783a8a1fcfa3629fb3fb5a7294fa75f1d83500bdc578671a520c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00037.jsonl",
+      "jsonl_sha256": "dc005d126bf0c8e86b89bf844517a54c3bab405ab68c1a8921d18a7957aa5254",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00037.npz",
+      "npz_sha256": "f2e95bcc14ad7a7feec2f8591a6597876caff0d580d12e2dd88ce5d8319deecb"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00038.jsonl",
+      "jsonl_sha256": "f340b9f0183ea8c37442c868c920c47d811be01f9b4df845c1ec472668a1327a",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00038.npz",
+      "npz_sha256": "487af0bd67c1e37aed848e0482de9cb0392f6cacfd7860ac4eae7d122742737c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00039.jsonl",
+      "jsonl_sha256": "ecef8309ed520174c1c927f9346c1d41cf789713de5dbf7204b380313215ef03",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00039.npz",
+      "npz_sha256": "38f907e5b039b8c6bc5795ad138c0418fbfb16639777c4dd8d69a407fe3c1192"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00040.jsonl",
+      "jsonl_sha256": "63b8d516ee08adbff409ae53a6925eacc8284de393d36590311932efc9f6241d",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00040.npz",
+      "npz_sha256": "026dc05b943aeae049c891da460024f4f07e09e460e429458119b829af73f230"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00041.jsonl",
+      "jsonl_sha256": "66a6bfa28d5dc4ac0e936ce023ea5be7e61a2c34480e7c72ca59bf2541ae434d",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00041.npz",
+      "npz_sha256": "f78690778e110c1cfdd904d6cde3f4b2e3581adee367351540081505d4884ff9"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00042.jsonl",
+      "jsonl_sha256": "10c7b528574ff9519caa0649dc536473e8e665eb10ebf250bac3ef6a9db18cf9",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00042.npz",
+      "npz_sha256": "d32dd17405c0578b9bd763182ca9dea07af0ef038ba013845b692a9e83c5ee92"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00043.jsonl",
+      "jsonl_sha256": "d583dd641ea3707ea06829692115571d4b4b2470d1ee49be21c2a417fc26d4e4",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00043.npz",
+      "npz_sha256": "32eb8e9144bbfc14c6c5704c510043fab61200ebbb7e2724a92297de994bf39e"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00044.jsonl",
+      "jsonl_sha256": "490265bb73f000b422e7edf2c7ee04f5898e67839cda7c6b7bb95af37fa269a3",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00044.npz",
+      "npz_sha256": "9709c5b9feb6ebb9a9e98cc77f2a50e50eb22177a196f1c9584899854414a938"
+    },
+    {
+      "count": 3488,
+      "jsonl": "data/external/processed/sku110k_patches_icc/patches-00045.jsonl",
+      "jsonl_sha256": "f4c402978a2b2a8eb07b2eaa9b1c545f31a5eb2b1966c9b4e6b4bf4593b12429",
+      "npz": "data/external/processed/sku110k_patches_icc/patches-00045.npz",
+      "npz_sha256": "a7e74ca7b8c780156db09024d789f3f1649b5b5a2b17cd498985e0102fb85a24"
+    }
+  ],
+  "source_images_considered": 11743,
+  "sources": [
+    "data/external/raw/sku110k/SKU110K_fixed/images"
+  ],
+  "stride": 32,
+  "supplement_dir": "data/external/processed/color_supplements",
+  "target_generation": {
+    "cmyk_baseline": "ICC RGB->CMYK Relative Colorimetric with Black Point Compensation",
+    "icc_profiles": {
+      "destination_cmyk": "/usr/share/color/icc/colord/FOGRA39L_coated.icc",
+      "source_rgb": "/usr/share/color/icc/colord/sRGB.icc"
+    },
+    "lab": "sRGB inverse transfer -> XYZ D65 -> Bradford D50 -> CIE Lab",
+    "ppp_projection": {
+      "channel_caps": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "tac_max": 3.0
+    }
+  }
+}

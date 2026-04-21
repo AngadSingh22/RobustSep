@@ -1,0 +1,388 @@
+{
+  "bucket_cap": 25000,
+  "bucket_counts": {
+    "edge/dark": 25000,
+    "edge/neutral": 5786,
+    "edge/normal": 22082,
+    "edge/saturated": 24230,
+    "flat/dark": 25000,
+    "flat/neutral": 12562,
+    "flat/normal": 1913,
+    "textured/dark": 25000,
+    "textured/neutral": 2604,
+    "textured/normal": 25000,
+    "textured/saturated": 25000
+  },
+  "created_unix": 1776812471.5005128,
+  "image_error_count": 0,
+  "image_errors": [],
+  "max_per_image": 24,
+  "min_visible": 0.05,
+  "out_dir": "data/external/processed/robustsep_patches_icc",
+  "patch_size": 16,
+  "patches_written": 194177,
+  "quarantined": [],
+  "seed": 20260422,
+  "shards": [
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00000.jsonl",
+      "jsonl_sha256": "18c7687bf493c24c95d657ec960df49b1da9ea6b48b342195acc26d225f7a391",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00000.npz",
+      "npz_sha256": "d72c66791b193aee48508c7f0171f9c25e916b512d8aa520094f2867e162db74"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00001.jsonl",
+      "jsonl_sha256": "89060723d552bea72f431bbdee84b28b0909ea48dbb0c4991a1671fcb8e56d1a",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00001.npz",
+      "npz_sha256": "c52521e0bdbad93ebdaff1d7d84c658d0a73892a5f5ffa183ee21fb2413a7d96"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00002.jsonl",
+      "jsonl_sha256": "bceffc2cdadef47c7ce3927f3d5ac72dbb058b5b49bbe71e3a328088efb9f5af",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00002.npz",
+      "npz_sha256": "7a82acd873868a061c23c0aed4a4354f185e0ecb4bcefa00589ce47e2ea6f7c4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00003.jsonl",
+      "jsonl_sha256": "db81ab53f176f39c1f68fd31af344d6fc967ff8d85da4687c858d4ffdf902e96",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00003.npz",
+      "npz_sha256": "dae7fdbd485ec722d64bf4f22ffc9238bad25fd5c9b6c673f019bc55e2895e2b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00004.jsonl",
+      "jsonl_sha256": "6c0352c6c1554820c64f55972aac3f514257ccd70c530ab133e46fc063e5fa93",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00004.npz",
+      "npz_sha256": "78834fd8d3f3f633990ea4b8e74d13857539ab73be21f94f3b0473606b4012f8"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00005.jsonl",
+      "jsonl_sha256": "39785a193810e7904fc3399a9ea6517bd051d13d5d2c4cce3a7fe4dbbc09b134",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00005.npz",
+      "npz_sha256": "2762bd2f82f5e711f4a8ce57399b485ecf24d07e9de5ebad8b50a56cf5f76bb4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00006.jsonl",
+      "jsonl_sha256": "648b27a7b3a19141deb25294b6c35c84eb355037538c66f5e946d8644ac42e76",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00006.npz",
+      "npz_sha256": "56a94613a7ba081bc02f3030cf1bff37e45898b3f8bc9540cfb84f6e30c39a10"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00007.jsonl",
+      "jsonl_sha256": "357c12cfb419c99542b3091858ea6250e5a687f178400d535e127c3329ea8e29",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00007.npz",
+      "npz_sha256": "d82927b55f4a39fbddce6cac117716764447a59f45cd9ecfbe2771c2fd7410d3"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00008.jsonl",
+      "jsonl_sha256": "fcb5ea1ce46aad510ff9ce72ce9c041bb7ac42dfed977c51df165770fd4621a4",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00008.npz",
+      "npz_sha256": "e73c3ad9fb3533bc7d9112f347958560e8433738d34fe44761e633143a679a6c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00009.jsonl",
+      "jsonl_sha256": "b18636ce63baf3367a94d421e8588e6ea19c77dcb5d9e74c68bd7e39f4de2234",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00009.npz",
+      "npz_sha256": "69fcd424e959d1bdd4ceeca66161d78cd79460cd41fc474b4e692b23d4ec1891"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00010.jsonl",
+      "jsonl_sha256": "f8ca614cc9f3740495abf68d7c9c5ce272a5dba382b4b36c9b36aedb69111045",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00010.npz",
+      "npz_sha256": "ad57585350db27982efd9c46dee2424182fb4819937aee3dd88e48165b86c361"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00011.jsonl",
+      "jsonl_sha256": "3d573823051ad34efc3e1360848f0a69f211f9f6fdd6734c5d8e03f965dad05a",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00011.npz",
+      "npz_sha256": "df4f2eff4c0f2575a0e80025c4e45425451f27d10cf581b1e09a4c80144604ef"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00012.jsonl",
+      "jsonl_sha256": "a41d47abd5fa15e319b6a3149574dfbc796ce3b6ba4389c7d5e504463c4eac03",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00012.npz",
+      "npz_sha256": "38df2d221834ca2d88ffa00dab65c56fadd6171f47353e009d8c70d68369dccb"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00013.jsonl",
+      "jsonl_sha256": "1d05478fe7af718e219b6f08400161804761afc1c0f988e12b36095fae4dcf47",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00013.npz",
+      "npz_sha256": "5ae5af4463fc2f9acc1411fc269c0a27a23a957d37af1cb795cdc67b3bea836d"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00014.jsonl",
+      "jsonl_sha256": "7f5c3b2f9b3630212cea391285ca517914cf3bec35ff9b24cbf096b4bc540c01",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00014.npz",
+      "npz_sha256": "7d3b2bb8f4d69808fa302a7d3b282b803db06962bf37ad5c6a15fe12d99ea2d5"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00015.jsonl",
+      "jsonl_sha256": "8f8175bd29bbf65ac4307af1b6bce5b5cb719635b5d0f2984ae8485120c43e9f",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00015.npz",
+      "npz_sha256": "45b9b762d5d0223da8ff5dbcd0ae11bcc5f9a0a2dd648c7a5414265bde464de4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00016.jsonl",
+      "jsonl_sha256": "a44e2f1c933a694af62269eff204de9e71b7ef83d09273368215ff957c430c83",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00016.npz",
+      "npz_sha256": "a50d21d882b3563930bcb6d9c4cd62090d93db9336ad184efd5b3ad7839beea8"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00017.jsonl",
+      "jsonl_sha256": "dcc4ea7c68f3df7fa83980de068e9374a5f50e3ac57fa32714d40a8cac1765be",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00017.npz",
+      "npz_sha256": "1a50ea8010057869f516ae43acf787a9382ea0aa0bc06ff1fc98e1ee2d9418d9"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00018.jsonl",
+      "jsonl_sha256": "56eb11068883436d9184e8fbe24e93d85136a2b813f4ce8560f5084f6bdb7c42",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00018.npz",
+      "npz_sha256": "45e7f23f35018d71d5788b91a5c4208cdb15caef2f9b2b87fde834608e37425a"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00019.jsonl",
+      "jsonl_sha256": "19143051ac77a2a2b4f3198ba27b8da1543ed23e67cf461fa518922dad54e7ed",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00019.npz",
+      "npz_sha256": "d2442524ea19f8b370cd1fde817c1c9e1d00fed8c555e6e2d91648127dda69a2"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00020.jsonl",
+      "jsonl_sha256": "ecd9b5afb7c8ed3d4476fb89c358e761c415aa45fa86309f2e14936733c3e895",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00020.npz",
+      "npz_sha256": "0232d4238febb8e7c6475e5029c93d2afa4b55b9d3609291a1ad226f7e198063"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00021.jsonl",
+      "jsonl_sha256": "e6ba07ecd64d7dea434a20e7c08fd78f35c3bbef9750ccf2dca077f8319b752d",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00021.npz",
+      "npz_sha256": "4ff9c2ef95cc47353adf81d71ba9365d53833ae7606ae6c2e67ac7e3d54ecfc5"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00022.jsonl",
+      "jsonl_sha256": "08db4115d4061e5d3bd9eae4afa4a4e7ba5bef60168ab97378d9e292561672de",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00022.npz",
+      "npz_sha256": "9a1938542dcf95b60ffc20e95b5625eb7e1dcdd5b93cc210668308033c025ce7"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00023.jsonl",
+      "jsonl_sha256": "fe5b1cead46f6b95f408ff95722447202d5c3ffb13b03df9519de946c48c3d23",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00023.npz",
+      "npz_sha256": "c9ad63528c5462d814c747e3a0754d04c04e026969e68cd7e2ba6123663e6b9c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00024.jsonl",
+      "jsonl_sha256": "764866407d7fac10847a97ca3161037c8fe197d405ee6e7c0f76aae6296ee604",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00024.npz",
+      "npz_sha256": "59cc2456bd43afee59cd6c3ac4a0e14df8f7528993c6d4de5d9dbebb44bc2717"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00025.jsonl",
+      "jsonl_sha256": "24537cd69a954b30beba038f82808d08866e50c11bf7a1e0bca7610ddc99560c",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00025.npz",
+      "npz_sha256": "fd72eb2cc4b395ceea0eb34f5f46e90292893af2a4cf3afd915e89205bdbe126"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00026.jsonl",
+      "jsonl_sha256": "6d1d9502b267e4c6b9625dc8041c029806b61376869c479b6d9acbdfb123ddb6",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00026.npz",
+      "npz_sha256": "cb365acccac29806de7ffcef9def9c548a68ed0a8dad8e7ed6f753a2a6e0e8d7"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00027.jsonl",
+      "jsonl_sha256": "bb676e9278c8d2b5a4dc7e319088b6708628e6132096407b91dadcbd32efa1a4",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00027.npz",
+      "npz_sha256": "c231eff771ca127ad11917b7bb77b35955e5c9ea6c74f5340c65086bcf548ca4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00028.jsonl",
+      "jsonl_sha256": "b2bfed699fe2645ea5636e2185639b267c34a3d2f7f200b6d9083d1f09237a85",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00028.npz",
+      "npz_sha256": "07b345627f0677cb710667b09fbc1397c510ab2093264d15e424ff73d0924494"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00029.jsonl",
+      "jsonl_sha256": "2b240bd40a7b9419217882456ed84f8b75a1e98cd1d9865c398748f0d185f0ee",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00029.npz",
+      "npz_sha256": "af84d17e9949026677170d69db64f046b1b07c95f663b3c90f83e4d31ffc227f"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00030.jsonl",
+      "jsonl_sha256": "5e78b28366577db040b8932a93e677eba8c7b5996c795d31bbaac5a013f2e8ea",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00030.npz",
+      "npz_sha256": "51863483040b084569cc28adec9d14c232f7913fcff125248fade3cac8018a67"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00031.jsonl",
+      "jsonl_sha256": "21105bd1bfdabcd2ce9fec6594e94fb7fa37d8a102a41ccf11bb173ee31e556e",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00031.npz",
+      "npz_sha256": "60f7bda8367d4512ce0cb14b962d66fbbfee5d3114653d675afbc18ce9123ecc"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00032.jsonl",
+      "jsonl_sha256": "d7f411e18f837acef448be0a0b5a736d09ca30264eda140c56fc21e767a49cb9",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00032.npz",
+      "npz_sha256": "f7b106ab8418f67e0f46b9a18b92434b5b20211a5e1b010b601241864c490256"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00033.jsonl",
+      "jsonl_sha256": "eb4154c57e6c98e06284822bc2d535a4b6b474fda4cfca731e559af79f6346c1",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00033.npz",
+      "npz_sha256": "5b8833fa19d1a119b0a46a49cd3b4868c8880d0c587a354fca5fd7bc66dca9c0"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00034.jsonl",
+      "jsonl_sha256": "a6865d1900382f86045a6fc00b4af76dd6815fde76aab8b8f92178020910561f",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00034.npz",
+      "npz_sha256": "c0297488a9ecf9d6a314f1745acfc20dc55b3222163953cdf129ee8d4fbfb4b5"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00035.jsonl",
+      "jsonl_sha256": "b7b7ef85483a7b53bbc00765359579c087ab5267b98464b9fee67f0505c0de21",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00035.npz",
+      "npz_sha256": "d5a8f93220fb89a9ae9f26fcd77ce7fc01212ede64b1a7ad631cc6ea603886a9"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00036.jsonl",
+      "jsonl_sha256": "426f2bb689341086d80f0863642fd88ae100543e5e1047b237db4b34b912b76b",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00036.npz",
+      "npz_sha256": "ba9504c88c6c3541eb10ad2f66b5fcbfe4c4e5b0f7436d3cba41cb73b649172b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00037.jsonl",
+      "jsonl_sha256": "5e3e23cafce5cd196609af10b7ea6876137182a14869f294fde83b03bfc2d1bb",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00037.npz",
+      "npz_sha256": "4451d95e6dd97965dcb278f045d882301595b6095434f218bae1415209d90458"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00038.jsonl",
+      "jsonl_sha256": "482059c6c9b46e9e97dd6c1bf1004e88ae59e26d4dfc7fc1f45508068f6ab485",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00038.npz",
+      "npz_sha256": "63b51050c9e0fb2afe261c60b36700d4080a27ba3f19e0083574767f5915b2aa"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00039.jsonl",
+      "jsonl_sha256": "8077369df361f2dadc18442d8a38bd568355b1d20f8b0a7ed519e05a66371e0b",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00039.npz",
+      "npz_sha256": "587957f1706a4fafefefdb3d86dc729ad5de61ae300735fc3af402fbe3a0813c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00040.jsonl",
+      "jsonl_sha256": "c459fb0730a8d80fc9d27f487f9046b88f6398ed987708acef8c954a8954efe2",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00040.npz",
+      "npz_sha256": "283dd27a95e420dde7a3618f20a793035f5e8132c82a4191ab473c14f20e3965"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00041.jsonl",
+      "jsonl_sha256": "9987274e01c9a12b338e26e3da056ed4d2ed71246cfa08d266813b9543dbc7be",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00041.npz",
+      "npz_sha256": "3a11b0e5a938852384fe78945354ddff71acb65d3b56444eebd728ed48db9b5d"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00042.jsonl",
+      "jsonl_sha256": "01e4d0b13b62c498b8b79cfef11310c29c8b593438ad556cdaa28b23b8a5d26e",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00042.npz",
+      "npz_sha256": "1e661854bcbba9aecf6072ed395dd31d606cb567c5b0a02859c37f525620a136"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00043.jsonl",
+      "jsonl_sha256": "43ab28246e015eec2b6631d061455ca4e2239502a8eb2c9aa84a212dcb26159e",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00043.npz",
+      "npz_sha256": "24e058565444b5b337fd3e3632ff70035590c690a538f278a7bd5e18d891edd9"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00044.jsonl",
+      "jsonl_sha256": "65ee1a2a791cf537dd10827bcb72d981daa088fec2d9b53a132b824e82c0986b",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00044.npz",
+      "npz_sha256": "48149b38f808674e9d240b0e17f17208087b67eb0a6e5c41eea7ec92855192c8"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00045.jsonl",
+      "jsonl_sha256": "38343c02aa06e198b89d6a98e12fdf74051829412adb2381a8b77fefb1074a35",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00045.npz",
+      "npz_sha256": "459ec1672f58c093abf788b870cc25a07d58e24a88a13a5bab623f5ce0e7b95e"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00046.jsonl",
+      "jsonl_sha256": "a552febc33125f073b0e1d5a887232672bcc57abc7210425b8b29ab83b81df4c",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00046.npz",
+      "npz_sha256": "1b5f0723ba4444a9773a03216ca05d2894aa9a287c8927a03a6ed9b7232d3895"
+    },
+    {
+      "count": 1665,
+      "jsonl": "data/external/processed/robustsep_patches_icc/patches-00047.jsonl",
+      "jsonl_sha256": "cd1914c288a977a2f95b446cec30edc823781d6fea3d12f081549ee9253ce888",
+      "npz": "data/external/processed/robustsep_patches_icc/patches-00047.npz",
+      "npz_sha256": "8f6c0c9a89e4f23480565ec92fee6deb36b09ce415ff566083f29a61bebfe2a4"
+    }
+  ],
+  "source_images_considered": 16427,
+  "sources": [
+    "data/png_full/png",
+    "data/png_sample"
+  ],
+  "stride": 16,
+  "supplement_dir": "data/external/processed/color_supplements",
+  "target_generation": {
+    "cmyk_baseline": "ICC RGB->CMYK Relative Colorimetric with Black Point Compensation",
+    "icc_profiles": {
+      "destination_cmyk": "/usr/share/color/icc/colord/FOGRA39L_coated.icc",
+      "source_rgb": "/usr/share/color/icc/colord/sRGB.icc"
+    },
+    "lab": "sRGB inverse transfer -> XYZ D65 -> Bradford D50 -> CIE Lab",
+    "ppp_projection": {
+      "channel_caps": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "tac_max": 3.0
+    }
+  }
+}

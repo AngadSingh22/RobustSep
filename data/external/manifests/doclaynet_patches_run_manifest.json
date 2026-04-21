@@ -1,0 +1,414 @@
+{
+  "bucket_cap": 25000,
+  "bucket_counts": {
+    "edge/dark": 1031,
+    "edge/neutral": 25000,
+    "edge/normal": 25000,
+    "edge/saturated": 5985,
+    "flat/dark": 5021,
+    "flat/neutral": 25000,
+    "flat/normal": 1728,
+    "textured/dark": 4530,
+    "textured/neutral": 25000,
+    "textured/normal": 25000,
+    "textured/saturated": 17609
+  },
+  "created_unix": 1776812143.332169,
+  "error_count": 0,
+  "errors": [],
+  "max_per_page": 8,
+  "out_dir": "data/external/processed/doclaynet_patches",
+  "pages_seen": 80863,
+  "parquet_dir": "data/external/raw/doclaynet",
+  "parquet_files": [
+    "data/external/raw/doclaynet/train-00000-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00001-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00002-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00003-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00004-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00005-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00006-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00007-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00008-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00009-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00010-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00011-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00012-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00013-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00014-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00015-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00016-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00017-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00018-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00019-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00020-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00021-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00022-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00023-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00024-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00025-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00026-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00027-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00028-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00029-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00030-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00031-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00032-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00033-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00034-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00035-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00036-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00037-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00038-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00039-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00040-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00041-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00042-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00043-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00044-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00045-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00046-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00047-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00048-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00049-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00050-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00051-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00052-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00053-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00054-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00055-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00056-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00057-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00058-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00059-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00060-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00061-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00062-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00063-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00064-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00065-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00066-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00067-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00068-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00069-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00070-of-00072.parquet",
+    "data/external/raw/doclaynet/train-00071-of-00072.parquet",
+    "data/external/raw/doclaynet/validation-00000-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00001-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00002-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00003-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00004-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00005-of-00007.parquet",
+    "data/external/raw/doclaynet/validation-00006-of-00007.parquet",
+    "data/external/raw/doclaynet/test-00000-of-00006.parquet",
+    "data/external/raw/doclaynet/test-00001-of-00006.parquet",
+    "data/external/raw/doclaynet/test-00002-of-00006.parquet",
+    "data/external/raw/doclaynet/test-00003-of-00006.parquet",
+    "data/external/raw/doclaynet/test-00004-of-00006.parquet",
+    "data/external/raw/doclaynet/test-00005-of-00006.parquet"
+  ],
+  "patch_size": 16,
+  "patches_written": 160904,
+  "seed": 20260424,
+  "shards": [
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00000.jsonl",
+      "jsonl_sha256": "8e5bf550cae9889b2e9a4f5dcc0f42b104e157887e5e80f1042403bac391a706",
+      "npz": "data/external/processed/doclaynet_patches/patches-00000.npz",
+      "npz_sha256": "a01c5f8b5a7dba6c295701ce901fedc228a3d706713f9614b5aa4d7177d3006a"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00001.jsonl",
+      "jsonl_sha256": "54fb78da8fb9f83bd76037f96ba194109b58fb9e0bb05e87f991ebbf642cd3d5",
+      "npz": "data/external/processed/doclaynet_patches/patches-00001.npz",
+      "npz_sha256": "f6fb21c757ef1c14f6131007735a9e6d2002a5736ddb938dd1c32be6a81dd48f"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00002.jsonl",
+      "jsonl_sha256": "a742cbfd1a9340ef4b125c1498480e2e57ccde8be1f23d26375d9fa52c1a2346",
+      "npz": "data/external/processed/doclaynet_patches/patches-00002.npz",
+      "npz_sha256": "87f7693ebc4080f0056de3ee5b5acbb5279bf7e4d0e8479d352b432729d70e8b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00003.jsonl",
+      "jsonl_sha256": "052b858e3dbfad8c6e5b3cd2ef530f87256472f287f9b344bc1e8e6fa91d6544",
+      "npz": "data/external/processed/doclaynet_patches/patches-00003.npz",
+      "npz_sha256": "bf4e1e443e82a8188eee21035f23bd0116bca61aa33ed87ce63b591682d74ce1"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00004.jsonl",
+      "jsonl_sha256": "453562bd00bdcc777a969514bc4aba32272fa8075a4ce005cfcc3e02f5162fa4",
+      "npz": "data/external/processed/doclaynet_patches/patches-00004.npz",
+      "npz_sha256": "c944fe5f422b4603d14f46f33f65739a79412bff28d66acf1365d9660a2c96d5"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00005.jsonl",
+      "jsonl_sha256": "f821159c29f1531dfcd69035ed41c02b5b971bc6ed596174373908b9ef68c07b",
+      "npz": "data/external/processed/doclaynet_patches/patches-00005.npz",
+      "npz_sha256": "328a7d305d8f6290a542dcb87eba2a6e4df52e7c927fdfb2e35ab90002184add"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00006.jsonl",
+      "jsonl_sha256": "22e6ec3394ebc45d81c8104e730475f9755fd03d7e475a7baa30d872ec791978",
+      "npz": "data/external/processed/doclaynet_patches/patches-00006.npz",
+      "npz_sha256": "73e6cdffa9797aeb175e56f9511c875daa79e50b1e330980dae793d874f1e2ef"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00007.jsonl",
+      "jsonl_sha256": "0f7a1a111a9d3ecaaa5480d5d2f388780eadcd403d863dd98300a47763e7ebbc",
+      "npz": "data/external/processed/doclaynet_patches/patches-00007.npz",
+      "npz_sha256": "ba91e37a7594a093182257082b2854116b4c396afe290dcfaa3c66ae3bd64863"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00008.jsonl",
+      "jsonl_sha256": "798ccf618b3febb773ccbcfa09f25a000d862cd651ff10e14291438504c7ca03",
+      "npz": "data/external/processed/doclaynet_patches/patches-00008.npz",
+      "npz_sha256": "7fc41698fa2e5dca28634b5ae0217df261419425f3fd9aa10c70d78b83aa45a2"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00009.jsonl",
+      "jsonl_sha256": "68b42b4e93c742a9e4c8f36d84074658823187587400ed39f60dbcfa064c41b3",
+      "npz": "data/external/processed/doclaynet_patches/patches-00009.npz",
+      "npz_sha256": "6f361407b23d02d70c76a8b9684fc6b8d85d8060a6e20bc4ae687d7da8855d8b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00010.jsonl",
+      "jsonl_sha256": "2037bcfb8fe732c42e6d076001fb51be379b9fd503cffc2713ed11fb9cd03358",
+      "npz": "data/external/processed/doclaynet_patches/patches-00010.npz",
+      "npz_sha256": "e1ccd53a0b2c2174fe09c54d96621e9b5cf7a19fc2190ebba50f6428a19f2930"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00011.jsonl",
+      "jsonl_sha256": "91ba7cf2119d1775cea85eb2d3dd1c085a89e0c51279262a5f8509a7afb231cf",
+      "npz": "data/external/processed/doclaynet_patches/patches-00011.npz",
+      "npz_sha256": "99bdfdc4998c16e85d1db138a2744dbb09d94ebdc4621b471b0343b320e112ed"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00012.jsonl",
+      "jsonl_sha256": "7939133a7f561c4388f9494ede4f2328488e289e8cd062fc2cae5d596599ecb7",
+      "npz": "data/external/processed/doclaynet_patches/patches-00012.npz",
+      "npz_sha256": "195c31a5189d941e6e5efed90a38e846fcef6fcf984efbc9526fcb3a211ec78d"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00013.jsonl",
+      "jsonl_sha256": "93bb494d2403a6dbe4150af720f254ac0f65251cd0eda22af988d7459a9389a1",
+      "npz": "data/external/processed/doclaynet_patches/patches-00013.npz",
+      "npz_sha256": "eb0acede221b1709611d824e89a78e7ecc37b62d0f24c90e9950782f501410d4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00014.jsonl",
+      "jsonl_sha256": "1389ed7877d64797a5ee0a4d0eb2ae757a6dc30e540f68cf730da5e67b05b0e7",
+      "npz": "data/external/processed/doclaynet_patches/patches-00014.npz",
+      "npz_sha256": "770f1436087b9963670e4545d9a624a701f68e5c90f80d62571452051e2a3bc0"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00015.jsonl",
+      "jsonl_sha256": "607efb3a9adc77b5c614cba8e479d6a01cef1ecee8141df9ef5160acdce1a2e9",
+      "npz": "data/external/processed/doclaynet_patches/patches-00015.npz",
+      "npz_sha256": "e5c281f8c2ff75b9247a0290a360cbcde3cc5a9217bafbdec8760e3d02a819fc"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00016.jsonl",
+      "jsonl_sha256": "27c834921dcbc1753dbcfeb01364d9b853cf2062ad044f389f7b3a40dd965820",
+      "npz": "data/external/processed/doclaynet_patches/patches-00016.npz",
+      "npz_sha256": "371433bea8e9101eaf77560cda4066de578d38776fd3127d50010decc34f5f03"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00017.jsonl",
+      "jsonl_sha256": "dda1a2674bcc4126a73843f0aa82790c785ef39d6e157a431556c80e1c63ae9d",
+      "npz": "data/external/processed/doclaynet_patches/patches-00017.npz",
+      "npz_sha256": "3b188ae6e66190820fad49e9527040a53622a806da56aa7eac33df09af77ba92"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00018.jsonl",
+      "jsonl_sha256": "83bcc9018ed677c1cbb32473a13be76370bfb58b68b2c72906242c57a4c5a01a",
+      "npz": "data/external/processed/doclaynet_patches/patches-00018.npz",
+      "npz_sha256": "5a6abc702bc5b1c86153528d09e2645997ef6fdd1a59deeef3ac4649800b7542"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00019.jsonl",
+      "jsonl_sha256": "f8f749c33be6c90513b040235569ff9c10616d4234632f89678c30e61346f4de",
+      "npz": "data/external/processed/doclaynet_patches/patches-00019.npz",
+      "npz_sha256": "b4e736c0f9db79c2057f291f106e59fd6302d4b05c0644035d585be9cd5ed3e3"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00020.jsonl",
+      "jsonl_sha256": "dad930393ccb667710830ef65f8cbe0ab75890e5377e9ff2a9a0930d751c4cf3",
+      "npz": "data/external/processed/doclaynet_patches/patches-00020.npz",
+      "npz_sha256": "81e6e31ce1b6f1b55815e485b4281c344888b692f0bfdf5a0813331c1edbba06"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00021.jsonl",
+      "jsonl_sha256": "81c10451e2c79f22ba19fa4075cb079df816d11d14ee4fe8445b1f786b1604e1",
+      "npz": "data/external/processed/doclaynet_patches/patches-00021.npz",
+      "npz_sha256": "08e4278f1cafd16c23c5de653febb999f56ab32173eb971d107883fd404fd37d"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00022.jsonl",
+      "jsonl_sha256": "356d5ceb1092b1f56bacfa992f3f858f5388aed76f5ad992bb38b8712cdaa4f0",
+      "npz": "data/external/processed/doclaynet_patches/patches-00022.npz",
+      "npz_sha256": "c9d7a283a97cd775282669cb8a123459d4a3fc47c3a0f12bce58398c5f307aa5"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00023.jsonl",
+      "jsonl_sha256": "453fb2d869bb4f715f32ab5ae9a31626a7639191f35e6a8fb0645eae00a0071b",
+      "npz": "data/external/processed/doclaynet_patches/patches-00023.npz",
+      "npz_sha256": "c517f552792cd4fb19816b31a650329be71f0fa7573a38cfd6eb425ab7e3ddc8"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00024.jsonl",
+      "jsonl_sha256": "6ff64e262db2400ff52620df97dcf475876ca6a98ff2f5da71abcbb17f729193",
+      "npz": "data/external/processed/doclaynet_patches/patches-00024.npz",
+      "npz_sha256": "9f068f6267260babd11db72881c05b17bf2a3eb19d03cbf1cfe900cd72e377a2"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00025.jsonl",
+      "jsonl_sha256": "f84684839865e721e1862f611c1ec84f45d48f2b94d533ebe46ac33e7610b1c7",
+      "npz": "data/external/processed/doclaynet_patches/patches-00025.npz",
+      "npz_sha256": "6c34d41722f39d2249c3a82bcadb4acfe5f90df7e18102e1a76c256b7b1503ac"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00026.jsonl",
+      "jsonl_sha256": "62301d461a25cb83f95335670aa68262f79952594b58bec66789f84cea5b6d50",
+      "npz": "data/external/processed/doclaynet_patches/patches-00026.npz",
+      "npz_sha256": "4c6918167953b474f3d44d9a7918b8354683e2925fb7deb48d6b87019a3e0cf3"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00027.jsonl",
+      "jsonl_sha256": "2f05db13b3e0a6883a82446e9683efa83668b000bddf7f1dcac68a443f20534f",
+      "npz": "data/external/processed/doclaynet_patches/patches-00027.npz",
+      "npz_sha256": "86887a7c132795abbc585698754bb8dff3bb5dd02de3c396813921929b12a57a"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00028.jsonl",
+      "jsonl_sha256": "7446c87cff4503ca82148b0aa4fc9af69807305b94498d7f121ce654f344ff99",
+      "npz": "data/external/processed/doclaynet_patches/patches-00028.npz",
+      "npz_sha256": "b48352a79ffcbbe825a8a1a38de2b422bc8c4cab567cf9a1a602fcb2dbf66bc4"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00029.jsonl",
+      "jsonl_sha256": "9f237c0feab30ce845837842b86b378201fcbf58bbc67a0735ccaadf7696f772",
+      "npz": "data/external/processed/doclaynet_patches/patches-00029.npz",
+      "npz_sha256": "4c910fb16f1b06f1db8d4e2fa64dc7f9b2a0073f8342f995c5b13ddac2c55561"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00030.jsonl",
+      "jsonl_sha256": "750624b828ec1d9483a7145cd4338f10de82c817f2c2c5bf7172eae6d5373981",
+      "npz": "data/external/processed/doclaynet_patches/patches-00030.npz",
+      "npz_sha256": "01f93695a60611e3a51af1844df0e9ee610a64daab76a1c62d276649967e45bb"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00031.jsonl",
+      "jsonl_sha256": "47417ff70643b169feaa30a7de0fe68276f57585d40e9d9561e9d1edf66b0d73",
+      "npz": "data/external/processed/doclaynet_patches/patches-00031.npz",
+      "npz_sha256": "7019b1967b0a7397d7c278466b52825ad27d8abecbcd1b16d6263982b1041399"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00032.jsonl",
+      "jsonl_sha256": "248aee1794f0ebe4174baa309838fb21260a28b392c91b4f989066bbab23d5f8",
+      "npz": "data/external/processed/doclaynet_patches/patches-00032.npz",
+      "npz_sha256": "c8acb8b8a265aad2e0b64f7322d7551d9f71d581e35e34e94aa9c33e0ada23d6"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00033.jsonl",
+      "jsonl_sha256": "616df39a7458c0745c0436a6ab8b8becd586672bc5d62e71a193c9c6ffefa28b",
+      "npz": "data/external/processed/doclaynet_patches/patches-00033.npz",
+      "npz_sha256": "d18e60c54705af4238c7f275971e6673733fc1b53a21fcf97d728e2fcf2d251b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00034.jsonl",
+      "jsonl_sha256": "173dde0154be5be425627b2fce26664b4545fc27ac9f0ca6e6ffa347d3637b28",
+      "npz": "data/external/processed/doclaynet_patches/patches-00034.npz",
+      "npz_sha256": "fab0d0e278b4877c592c609bcfb0f29a532b4aba1ed1bcdee68ae9bbd8830f02"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00035.jsonl",
+      "jsonl_sha256": "f158cb2755584a59f79ce402809714ad439604294ac14c55bfec4bc8a9c2a79f",
+      "npz": "data/external/processed/doclaynet_patches/patches-00035.npz",
+      "npz_sha256": "dc9d78d217010cebe7e730b25297a3ae97ba3b909d008c03214b03916decb33c"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00036.jsonl",
+      "jsonl_sha256": "03ed4bf9d2c5c4ddef2b390321f84912b1ae1ad3f39db04a8518a6e09e40036d",
+      "npz": "data/external/processed/doclaynet_patches/patches-00036.npz",
+      "npz_sha256": "24ab26aea226efc895150dd75c184ea646baf1365639b671432639ed8b9f02da"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00037.jsonl",
+      "jsonl_sha256": "24aee67a9f099dbe56328a209ea4eba113096f1d70bfb9ac1ae48e01ce2ce0f0",
+      "npz": "data/external/processed/doclaynet_patches/patches-00037.npz",
+      "npz_sha256": "bfa9e7581f5601fdd9c5cb927328c7b850d0ea9042d535fbee35ff5876daf85b"
+    },
+    {
+      "count": 4096,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00038.jsonl",
+      "jsonl_sha256": "44969cbfc054622be060d69c5262e39aee1d4111243243c77bb0484baaf1d9fd",
+      "npz": "data/external/processed/doclaynet_patches/patches-00038.npz",
+      "npz_sha256": "33c157d09057ad3365496f9dce064c81f3e77dd43e040e4ed20b9f68aa4d5174"
+    },
+    {
+      "count": 1160,
+      "jsonl": "data/external/processed/doclaynet_patches/patches-00039.jsonl",
+      "jsonl_sha256": "dcc4e0830dac7c3ed372170b9e5794e71bfd2858196ee2841c661254e6a83a68",
+      "npz": "data/external/processed/doclaynet_patches/patches-00039.npz",
+      "npz_sha256": "9dd7b8ab6a298aa6a45bf5d4e13cde848ab866c819ee8d4a7cc67126fac91b71"
+    }
+  ],
+  "splits": [
+    "train",
+    "validation",
+    "test"
+  ],
+  "stride": 96,
+  "target_generation": {
+    "cmyk_baseline": "deterministic GCR-style RGB to CMYK baseline",
+    "lab": "sRGB inverse transfer -> XYZ D65 -> Bradford D50 -> CIE Lab",
+    "ppp_projection": {
+      "channel_caps": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "tac_max": 3.0
+    }
+  }
+}

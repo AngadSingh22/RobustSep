@@ -1,0 +1,85 @@
+# Local environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Python caches and build outputs
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Codex/local runtime state
+.codex
+
+# Logs and process files
+*.log
+*.pid
+*.tmp
+*.temp
+
+# Large downloaded archives and loose source bundles
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# Dataset payloads and generated training arrays
+data/png_full/
+data/png_sample/
+data/quarantine/
+data/external/raw/
+data/external/processed/
+data/external/**/*.npz
+data/external/**/*.npy
+data/external/**/*.parquet
+data/external/**/*.jpg
+data/external/**/*.jpeg
+data/external/**/*.png
+data/external/**/*.svg
+
+# Keep lightweight dataset manifests for reproducibility.
+!data/
+!data/external/
+!data/external/manifests/
+!data/external/manifests/*.json
+
+# Generated model/checkpoint artifacts
+checkpoints/
+models/
+runs/
+wandb/
+mlruns/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.safetensors
+
+# Generated reports and scratch outputs
+reports/
+outputs/
+artifacts/
+tmp/
+temp/

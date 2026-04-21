@@ -1,0 +1,81 @@
+{
+  "bucket_cap": 200,
+  "bucket_counts": {
+    "edge/dark": 200,
+    "edge/neutral": 13,
+    "edge/normal": 32,
+    "edge/saturated": 35,
+    "flat/dark": 22,
+    "flat/neutral": 27,
+    "textured/dark": 75,
+    "textured/neutral": 3,
+    "textured/normal": 116,
+    "textured/saturated": 117
+  },
+  "created_unix": 1776807714.412994,
+  "image_error_count": 0,
+  "image_errors": [],
+  "max_per_image": 8,
+  "min_visible": 0.05,
+  "out_dir": "data/external/processed/robustsep_patches_smoke",
+  "patch_size": 16,
+  "patches_written": 640,
+  "quarantined": [
+    {
+      "quarantine_path": "data/quarantine/corrupt_png/frame-5268144_1280.png",
+      "reason": "UnidentifiedImageError(\"cannot identify image file 'data/png_full/png/frame-5268144_1280.png'\")",
+      "sha256": "d6120a84d30dcc640af76c1e83d993460be7dfd1b7f7fbb80741ee76bfb7f7f9",
+      "source": "data/png_full/png/frame-5268144_1280.png"
+    },
+    {
+      "quarantine_path": "data/quarantine/corrupt_png/frame-8066465_1280.png",
+      "reason": "UnidentifiedImageError(\"cannot identify image file 'data/png_full/png/frame-8066465_1280.png'\")",
+      "sha256": "fda2c56e4cf942f7bae49657bac20556384ccc33946254ce7d874884d44b3fd4",
+      "source": "data/png_full/png/frame-8066465_1280.png"
+    }
+  ],
+  "seed": 20260422,
+  "shards": [
+    {
+      "count": 256,
+      "jsonl": "data/external/processed/robustsep_patches_smoke/patches-00000.jsonl",
+      "jsonl_sha256": "2e1b822100b66111cf521ac09e6126f2120e7c76886842960731a22a6c87e007",
+      "npz": "data/external/processed/robustsep_patches_smoke/patches-00000.npz",
+      "npz_sha256": "504aafb1b56f13409a3caadcc0243e08d0b67b993521252913bb9ce3fcef8da0"
+    },
+    {
+      "count": 256,
+      "jsonl": "data/external/processed/robustsep_patches_smoke/patches-00001.jsonl",
+      "jsonl_sha256": "2d4f7218249d8c6bc856fd2d1c48c04137557cbfe102de1c1cfe9e3a3ffc923c",
+      "npz": "data/external/processed/robustsep_patches_smoke/patches-00001.npz",
+      "npz_sha256": "5c8bab1a493823e8afd2bb51f53667b0053835913beb0bb8557b325df60ce601"
+    },
+    {
+      "count": 128,
+      "jsonl": "data/external/processed/robustsep_patches_smoke/patches-00002.jsonl",
+      "jsonl_sha256": "514a7e0ed3359a4974b0590f170812377be24c7620350a975d600c12416c0cd3",
+      "npz": "data/external/processed/robustsep_patches_smoke/patches-00002.npz",
+      "npz_sha256": "95a3278cbcf0ccb73510a6067f03ccf54ad0827a0a628ba419ae1efe3e9dddae"
+    }
+  ],
+  "source_images_considered": 80,
+  "sources": [
+    "data/png_full/png",
+    "data/png_sample"
+  ],
+  "stride": 16,
+  "supplement_dir": "data/external/processed/color_supplements",
+  "target_generation": {
+    "cmyk_baseline": "deterministic GCR-style RGB to CMYK baseline",
+    "lab": "sRGB inverse transfer -> XYZ D65 -> Bradford D50 -> CIE Lab",
+    "ppp_projection": {
+      "channel_caps": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "tac_max": 3.0
+    }
+  }
+}
