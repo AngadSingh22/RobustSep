@@ -66,11 +66,11 @@ data/external/**/*.svg
 !data/external/manifests/*.json
 
 # Generated model/checkpoint artifacts
-checkpoints/
-models/
-runs/
-wandb/
-mlruns/
+/checkpoints/
+/model_artifacts/
+/runs/
+/wandb/
+/mlruns/
 *.ckpt
 *.pth
 *.pt

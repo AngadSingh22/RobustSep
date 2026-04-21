@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robustsep-training"
+version = "0.1.0"
+description = "RobustSep training-data and non-neural pipeline primitives"
+requires-python = ">=3.11"
+dependencies = ["numpy"]
+
+[tool.setuptools.packages.find]
+include = ["robustsep_pkg*"]
+
+[tool.setuptools.package-data]
+robustsep_pkg = ["docs/**/*.md"]
