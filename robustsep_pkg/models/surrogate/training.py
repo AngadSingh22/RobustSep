@@ -17,6 +17,7 @@ except ImportError as exc:  # pragma: no cover
 from robustsep_pkg.eval.metrics import delta_e_00, finite_quantile
 from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset
 from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN, SurrogateModelConfig
+from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig, evaluate_candidate_probe
 
 
 @dataclass(frozen=True)
@@ -44,9 +45,13 @@ class SurrogateQualityMetrics:
     q90_delta_e00: float
     spearman: float
     top1_agreement: float
+    ranking_evaluated: bool
+    probe_patches_evaluated: int
+    probe_candidates_per_patch: int
+    probe_drifts_per_candidate: int
     passed: bool
 
-    def to_dict(self) -> dict[str, float | bool]:
+    def to_dict(self) -> dict[str, float | int | bool]:
         return asdict(self)
 
 
@@ -75,6 +80,7 @@ def train_surrogate(
     training_config: SurrogateTrainingConfig = SurrogateTrainingConfig(),
     model_config: SurrogateModelConfig = SurrogateModelConfig(),
     gate_thresholds: SurrogateQualityGateThresholds = SurrogateQualityGateThresholds(),
+    candidate_probe_config: CandidateProbeConfig = CandidateProbeConfig(),
 ) -> SurrogateTrainingResult:
     torch.manual_seed(training_config.seed)
     device = _resolve_device(training_config.device)
@@ -96,7 +102,14 @@ def train_surrogate(
             optimizer.step()
             losses.append(float(loss.detach().cpu()))
 
-    quality = evaluate_surrogate_quality(model, dataset, device=device, thresholds=gate_thresholds, batch_size=training_config.batch_size)
+    quality = evaluate_surrogate_quality(
+        model,
+        dataset,
+        device=device,
+        thresholds=gate_thresholds,
+        batch_size=training_config.batch_size,
+        candidate_probe_config=candidate_probe_config,
+    )
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     checkpoint_path = out_path / "surrogate_checkpoint.pth"
@@ -121,6 +134,7 @@ def evaluate_surrogate_quality(
     device: torch.device | str,
     thresholds: SurrogateQualityGateThresholds = SurrogateQualityGateThresholds(),
     batch_size: int = 32,
+    candidate_probe_config: CandidateProbeConfig = CandidateProbeConfig(),
 ) -> SurrogateQualityMetrics:
     model.eval()
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -130,18 +144,26 @@ def evaluate_surrogate_quality(
         target = batch["lab_center"].numpy()
         errors.append(delta_e_00(pred, target).reshape(-1))
     flat = np.concatenate(errors, axis=0) if errors else np.zeros((0,), dtype=np.float32)
-    mean = float(np.mean(flat)) if flat.size else 0.0
-    q90 = finite_quantile(flat, 0.90) if flat.size else 0.0
+    fallback_mean = float(np.mean(flat)) if flat.size else 0.0
+    fallback_q90 = finite_quantile(flat, 0.90) if flat.size else 0.0
+    probe = evaluate_candidate_probe(model, dataset, device=device, config=candidate_probe_config)
+    mean = probe.mean_delta_e00 if probe.ranking_evaluated else fallback_mean
+    q90 = probe.q90_delta_e00 if probe.ranking_evaluated else fallback_q90
     metrics = SurrogateQualityMetrics(
         mean_delta_e00=mean,
         q90_delta_e00=q90,
-        spearman=1.0,
-        top1_agreement=1.0,
+        spearman=probe.spearman,
+        top1_agreement=probe.top1_agreement,
+        ranking_evaluated=probe.ranking_evaluated,
+        probe_patches_evaluated=probe.patches_evaluated,
+        probe_candidates_per_patch=probe.candidates_per_patch,
+        probe_drifts_per_candidate=probe.drifts_per_candidate,
         passed=(
             mean <= thresholds.threshold_mean
             and q90 <= thresholds.threshold_q90
-            and 1.0 >= thresholds.threshold_spearman
-            and 1.0 >= thresholds.threshold_top1
+            and probe.ranking_evaluated
+            and probe.spearman >= thresholds.threshold_spearman
+            and probe.top1_agreement >= thresholds.threshold_top1
         ),
     )
     return metrics

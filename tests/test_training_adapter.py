@@ -263,11 +263,13 @@ class SourceWeightingTests(unittest.TestCase):
         self.assertEqual(fracs, {"A": 0.0, "B": 0.0})
 
     def test_policy_summary_keys(self):
-        """policy_summary contains algorithm, raw_weights, normalized_fractions, default_weight."""
+        """policy_summary exposes priority-ordering semantics and weights."""
         p = SourceWeightPolicy(weights={"A": 1.0, "B": 0.5})
         summary = p.policy_summary(["A", "B"])
         self.assertIn("algorithm", summary)
+        self.assertEqual(summary["semantics"], "weighted_priority_without_replacement")
         self.assertIn("raw_weights", summary)
+        self.assertIn("normalized_priority_fractions", summary)
         self.assertIn("normalized_fractions", summary)
         self.assertIn("default_weight", summary)
         self.assertAlmostEqual(summary["default_weight"], 0.0)  # new default
@@ -341,6 +343,8 @@ class TrainingAdapterTests(unittest.TestCase):
         self.assertIn("source_weight_policy", payload)
         self.assertIn("alpha_policy", payload)
         self.assertEqual(payload["alpha_policy"], "ones")
+        self.assertEqual(payload["source_weight_policy"]["semantics"], "weighted_priority_without_replacement")
+        self.assertIn("normalized_priority_fractions", payload["source_weight_policy"])
         self.assertIn("normalized_fractions", payload["source_weight_policy"])
 
     def test_export_split_manifest_invalid_alpha_raises(self):

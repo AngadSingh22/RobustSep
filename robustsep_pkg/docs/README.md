@@ -4,9 +4,13 @@ RobustSep is a reproducible research/codebase for PPP-conditioned RGB-to-CMYK se
 
 ## Code Organization
 The repository has been restructured to be self-contained within `robustsep_pkg`:
-*   `robustsep_pkg/`: Configuration, Models, Training, Eval, Utils.
-*   `robustsep_pkg/scripts/`: Executable scripts (e.g., `train_vae.py`).
-*   `robustsep_pkg/notebooks/`: Jupyter notebooks.
+*   `robustsep_pkg/core/`: artifact IO, channel conventions, config, deterministic seeding.
+*   `robustsep_pkg/data/`: staged shard readers, split manifests, training adapter, enrichment.
+*   `robustsep_pkg/preprocess/`: RGB/Lab conversion, alpha-aware patches, intent maps, structure tokens.
+*   `robustsep_pkg/targets/`: CMYKOGV initialization, two-stage target generation, target manifests.
+*   `robustsep_pkg/surrogate_data/`: forward-surrogate example and shard writer.
+*   `robustsep_pkg/models/`: surrogate CNN, conditional VAE proposer, conditioning, refiner utilities.
+*   `scripts/`: repository-level dataset and ICC preparation scripts.
 *   `robustsep_pkg/docs/`: Documentation.
 
 ## Installation
@@ -15,33 +19,27 @@ pip install -e .
 ```
 
 ## Running Scripts
-Scripts should be run as modules to ensure proper import resolution:
+Run scripts from the repository root with `PYTHONPATH` set to the checkout:
 
 ```bash
-# Data Generation (Future)
-python -m robustsep_pkg.scripts.data_gen
-
-# VAE Training
-python -m robustsep_pkg.scripts.train_vae
+PYTHONPATH=. python scripts/prepare_robustsep_dataset.py --help
+PYTHONPATH=. python scripts/prepare_doclaynet_patches.py --help
+PYTHONPATH=. python scripts/apply_icc_cmyk_to_shards.py --help
 ```
 
-Alternatively, running directly from the root with `PYTHONPATH`:
+## Current Smoke Path
 ```bash
-set PYTHONPATH=.
-python robustsep_pkg/scripts/train_vae.py
+PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
 ```
 
-## CPU Smoke Path (End-to-End)
-```bash
-set PYTHONPATH=.
-python robustsep_pkg/scripts/ingest_rgb_patches.py --input_dir path\to\pngs --output_dir artifacts\rgb_cache
-python robustsep_pkg/scripts/build_vae_targets_stub.py --input_cache_dir artifacts\rgb_cache --out_dir artifacts\train_shards
-python robustsep_pkg/scripts/train_vae.py --data_dir artifacts\train_shards --smoke_test
-```
+There is no checked-in `robustsep_pkg/scripts/train_vae.py` entrypoint yet. Model code,
+surrogate data generation, and target-generation modules are available as package APIs and
+should be wired into explicit CLIs after the surrogate quality probe is implemented.
 
 ## Reproducibility
 *   **Source of truth**: `robustsep_pkg` + `pyproject.toml`.
 *   **Artifacts**: Large files (checkpoints, datasets) go to `artifacts/` (gitignored).
 
 ## Architecture
-See `robustsep_pkg/docs/design_specs/repo_blueprint.md` for the detailed layout.
+See `robustsep_pkg/docs/final_arch.md` and `robustsep_pkg/docs/vae_fs_pargb2cmyk.md`
+for the controlling architecture and mathematical specification.

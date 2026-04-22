@@ -1,6 +1,6 @@
 # Repo Checklist from Dataflow Spec
 
-Derived from `docs/VAE_FS_PARGB2CMYK.md`.
+Derived from `robustsep_pkg/docs/vae_fs_pargb2cmyk.md`.
 
 ## 1. PPP Parsing and Embedding
 - **Module**: `robustsep_pkg/models/conditioning/ppp.py`
@@ -15,7 +15,7 @@ Derived from `docs/VAE_FS_PARGB2CMYK.md`.
 - **CLI Entrypoint**: Implicit via `generate-synth` or `infer`.
 
 ## 2. Structure and Intent Embedding
-- **Module**: `robustsep_pkg/models/conditioning/embeddings.py` (New stub needed)
+- **Module**: `robustsep_pkg/preprocess/structure.py`, `robustsep_pkg/preprocess/intent.py`, and `robustsep_pkg/data/intent_adapter.py`
 - **Inputs**: 
   - `structure_token` (enum)
   - `intent_weights` (vector)
@@ -24,21 +24,21 @@ Derived from `docs/VAE_FS_PARGB2CMYK.md`.
   - `structure_embedding` (vector, dim=32)
   - `intent_embedding` (vector, dim=128)
 - **Determinism Hooks**: None.
-- **Tests**: `test_structure_mapping`, `test_intent_raster_flattening`.
+- **Tests**: `tests/test_core_primitives.py`, `tests/test_dataset_enrichment.py`.
 - **CLI Entrypoint**: Implicit.
 
 ## 3. FiLM Block Generators
-- **Module**: `robustsep_pkg/models/conditioning/film.py` (New stub needed)
+- **Module**: `robustsep_pkg/models/surrogate/model.py` (`FiLMHead`) and `robustsep_pkg/models/proposer/model.py`
 - **Inputs**: 
   - `conditioning_vector` (concat of PPP, structure, intent, lambda)
 - **Outputs**: 
   - `scale` and `shift` vectors per channel for each block.
 - **Determinism Hooks**: Weights initialization (training only).
-- **Tests**: `test_film_dimension_matching`.
+- **Tests**: `tests/test_surrogate_model.py`, `tests/test_proposer_model.py`.
 - **CLI Entrypoint**: Implicit.
 
 ## 4. Proposer (Conditional VAE)
-- **Module**: `robustsep_pkg/models/proposer/estimator.py`
+- **Module**: `robustsep_pkg/models/proposer/model.py`
 - **Inputs**: 
   - `rgb_patch`
   - `conditioning_vector`
@@ -46,7 +46,7 @@ Derived from `docs/VAE_FS_PARGB2CMYK.md`.
 - **Outputs**: 
   - `cmykogv_candidate` (0-1 tensor)
 - **Determinism Hooks**: `SeedPolicy.get_proposer_seed(...)` for latent sampling.
-- **Tests**: `test_proposer_determinism`, `test_lambda_monotonicity`.
+- **Tests**: `tests/test_proposer_model.py`.
 - **CLI Entrypoint**: `train-proposer`, `infer`.
 
 ## 5. Drift Sampler
@@ -69,7 +69,7 @@ Derived from `docs/VAE_FS_PARGB2CMYK.md`.
 - **Outputs**: 
   - `predicted_lab` (center region)
 - **Determinism Hooks**: None (deterministic inference).
-- **Tests**: `test_surrogate_shape`, `test_surrogate_film_injection`.
+- **Tests**: `tests/test_surrogate_model.py`, `tests/test_surrogate_training.py`.
 - **CLI Entrypoint**: `train-surrogate`, `eval-gate`.
 
 ## 7. Refiner (Solver)
@@ -97,14 +97,14 @@ Derived from `docs/VAE_FS_PARGB2CMYK.md`.
 - **CLI Entrypoint**: `eval-gate`.
 
 ## 9. Quality Gates
-- **Module**: `robustsep_pkg/gates/quality_gate.py`
+- **Module**: `robustsep_pkg/models/surrogate/training.py`
 - **Inputs**: 
   - `metrics_dict`
   - `ppp_thresholds`
 - **Outputs**: 
   - `pass_fail` boolean
 - **Determinism Hooks**: None.
-- **Tests**: `test_gate_thresholds`.
+- **Tests**: `tests/test_surrogate_training.py`.
 - **CLI Entrypoint**: `eval-gate`.
 
 ## 10. Logging and Manifests

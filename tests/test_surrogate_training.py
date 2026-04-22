@@ -7,9 +7,11 @@ from pathlib import Path
 from robustsep_pkg.models.conditioning.ppp import PPP
 from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, ppp_condition_arrays
 from robustsep_pkg.models.surrogate.model import SurrogateModelConfig
+from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig
 from robustsep_pkg.models.surrogate.training import (
     SurrogateQualityGateThresholds,
     SurrogateTrainingConfig,
+    evaluate_surrogate_quality,
     train_surrogate,
 )
 from robustsep_pkg.surrogate_data import SurrogateShardWriterConfig, write_surrogate_training_shards
@@ -58,12 +60,52 @@ class SurrogateTrainingTests(unittest.TestCase):
                 manifest_path,
                 root / "train",
                 training_config=SurrogateTrainingConfig(batch_size=2, epochs=1, device="cpu"),
-                gate_thresholds=SurrogateQualityGateThresholds(threshold_mean=1e9, threshold_q90=1e9),
+                gate_thresholds=SurrogateQualityGateThresholds(
+                    threshold_mean=1e9,
+                    threshold_q90=1e9,
+                    threshold_spearman=-1.0,
+                    threshold_top1=0.0,
+                ),
+                candidate_probe_config=CandidateProbeConfig(drift_sample_count=2, max_patches=1, batch_size=4),
             )
             self.assertGreater(result.train_loss, 0.0)
             self.assertTrue(Path(result.checkpoint_path).exists())
             self.assertTrue(Path(result.report_path).exists())
+            self.assertTrue(result.quality.ranking_evaluated)
+            self.assertEqual(result.quality.probe_patches_evaluated, 1)
+            self.assertEqual(result.quality.probe_candidates_per_patch, 5)
+            self.assertEqual(result.quality.probe_drifts_per_candidate, 2)
             self.assertTrue(result.quality.passed)
+
+    def test_quality_gate_uses_probe_metrics_and_respects_thresholds(self) -> None:
+        import torch
+
+        from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset
+        from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN
+
+        with tempfile.TemporaryDirectory() as td:
+            manifest_path, _ = self._write_surrogate_manifest(Path(td), n=2)
+            ds = SurrogateTrainingDataset(manifest_path)
+            model = ForwardSurrogateCNN()
+            metrics = evaluate_surrogate_quality(
+                model,
+                ds,
+                device=torch.device("cpu"),
+                thresholds=SurrogateQualityGateThresholds(
+                    threshold_mean=1e9,
+                    threshold_q90=1e9,
+                    threshold_spearman=-1.0,
+                    threshold_top1=1.1,
+                ),
+                batch_size=2,
+                candidate_probe_config=CandidateProbeConfig(drift_sample_count=2, max_patches=1, batch_size=4),
+            )
+
+        self.assertTrue(metrics.ranking_evaluated)
+        self.assertEqual(metrics.probe_patches_evaluated, 1)
+        self.assertEqual(metrics.probe_candidates_per_patch, 5)
+        self.assertEqual(metrics.probe_drifts_per_candidate, 2)
+        self.assertFalse(metrics.passed)
 
 
 if __name__ == "__main__":

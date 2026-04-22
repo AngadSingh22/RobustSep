@@ -68,6 +68,7 @@ class SurrogateTrainingDataset(Dataset):
             "ppp_numeric": torch.from_numpy(self._ppp_numeric),
             "ppp_override_mask": torch.from_numpy(self._ppp_mask),
             "structure_index": torch.tensor(STRUCTURE_TO_INDEX.get(record.get("structure_token", "flat"), 1), dtype=torch.long),
+            "source_id": record.get("source_id", ""),
             "target_hash": record.get("target_hash", ""),
             "drift_hash": record.get("drift_hash", ""),
         }

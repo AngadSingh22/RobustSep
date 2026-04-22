@@ -6,17 +6,21 @@ Each shard *family* (e.g. ``"robustsep"``, ``"doclaynet"``, ``"sku110k"``)
 has a non-negative weight.  The weighted shard schedule is built by a
 deterministic reservoir-style algorithm: each shard is assigned a priority
 value ``U ~ Uniform(0,1)`` drawn from a seeded RNG, raised to the power
-``1 / weight``.  Sorting by descending priority produces an interleaved order
-that, in the limit of many shards, respects the weight ratios.
+``1 / weight``.  Sorting by descending priority produces a weighted ordering
+without replacement.
 
 This is the "A-Res" algorithm (Vitter 1985) and is fully deterministic for a
 given ``(root_seed, epoch)``.
 
 Weight semantics
 ----------------
-Weights are **relative** — only their ratios matter::
+Weights are **relative priorities** — only their ratios matter::
 
-    P(shard from family F) ∝ weight_F
+    prefix_priority(family F) ∝ weight_F
+
+Full-epoch iteration includes every nonzero-weight shard exactly once.  The
+ratios affect interleaving order and partial-epoch/prefix exposure; they do
+not downsample counts unless the caller consumes only part of the schedule.
 
 ``default_weight=0.0`` (opt-in model): families not listed in *weights* are
 excluded.  Set to ``1.0`` for opt-out behaviour (unlisted = fully included).
@@ -39,15 +43,18 @@ from robustsep_pkg.data.shard_reader import ShardReader
 
 @dataclass(frozen=True)
 class SourceWeightPolicy:
-    """Per-family sampling weights for multi-source training.
+    """Per-family priority weights for multi-source training.
 
-    Weights are **relative** — only their ratios matter, not their absolute
-    values.  Conceptually::
+    Weights are **relative priorities** — only their ratios matter, not their
+    absolute values.  Conceptually::
 
-        P(shard from family F) ∝ weight_F
+        prefix_priority(family F) ∝ weight_F
 
-    This is enforced via the A-Res (Vitter 1985) weighted reservoir algorithm.
-    The resulting shard schedule is deterministic for a given ``(root_seed, epoch)``.
+    This is enforced via the A-Res (Vitter 1985) weighted reservoir algorithm
+    without replacement.  Full schedules include every nonzero-weight shard
+    once; the weights bias ordering and therefore any prefix/partial epoch.
+    The resulting shard schedule is deterministic for a given
+    ``(root_seed, epoch)``.
 
     Parameters
     ----------
@@ -55,8 +62,8 @@ class SourceWeightPolicy:
         Dict mapping family name -> non-negative float weight.
         Examples:
 
-        - ``{"robustsep": 1.0, "doclaynet": 0.5}`` — DocLayNet shards appear
-          roughly half as often as RobustSep shards in expectation.
+        - ``{"robustsep": 1.0, "doclaynet": 0.5}`` — RobustSep shards are
+          prioritized ahead of DocLayNet shards in schedule prefixes.
         - ``{"robustsep": 2.0, "sku110k": 1.0}`` — equivalent if only two
           families are present (only ratios matter).
         - Weight ``0.0`` or absence from the dict excludes the family.
@@ -81,9 +88,10 @@ class SourceWeightPolicy:
         return w
 
     def normalize_weights(self, families: list[str]) -> dict[str, float]:
-        """Return the effective per-family fractional contribution summing to 1.
+        """Return effective relative priority fractions summing to 1.
 
-        Useful for logging and manifest embedding.  Zero-weight families are
+        Useful for logging and manifest embedding.  These fractions describe
+        priority ratios, not full-epoch counts.  Zero-weight families are
         included as ``0.0`` in the output.
 
         Parameters
@@ -101,7 +109,7 @@ class SourceWeightPolicy:
         """Return a JSON-serialisable summary for embedding in manifests.
 
         Codex's target-manifest generator must embed this dict under the key
-        ``"source_weight_policy"`` so that the sampling distribution is
+        ``"source_weight_policy"`` so that schedule ordering semantics are
         fully reproducible from the manifest alone.
 
         Parameters
@@ -111,8 +119,12 @@ class SourceWeightPolicy:
         """
         return {
             "algorithm": "A-Res (Vitter 1985)",
+            "semantics": "weighted_priority_without_replacement",
             "default_weight": self.default_weight,
             "raw_weights": {f: self.get(f) for f in families},
+            "normalized_priority_fractions": self.normalize_weights(families),
+            # Backward-compatible v1.1 key.  Fractions are priorities, not
+            # guaranteed full-epoch source counts.
             "normalized_fractions": self.normalize_weights(families),
         }
 
@@ -128,7 +140,7 @@ def weighted_shard_schedule(
     epoch: int,
     root_seed: int = 20260422,
 ) -> list[ShardReader]:
-    """Return a deterministic interleaved list of ShardReaders respecting weights.
+    """Return a deterministic interleaved list of ShardReaders.
 
     Uses the A-Res (reservoir) algorithm: each shard *i* in family *f*
     receives a priority::
@@ -136,8 +148,9 @@ def weighted_shard_schedule(
         key_i = U_i ^ (1 / weight_f)      where U_i ~ Uniform(0, 1)
 
     Shards are returned sorted by descending key (highest priority first).
-    With ``weight_f = 1.0`` this is plain random shuffle; smaller weights
-    reduce a family's relative frequency in the schedule.
+    With ``weight_f = 1.0`` this is plain random shuffle.  Smaller weights
+    reduce a family's priority in early schedule prefixes.  Full schedules
+    still contain every nonzero-weight shard exactly once.
 
     Parameters
     ----------

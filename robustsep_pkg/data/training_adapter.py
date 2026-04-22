@@ -70,8 +70,8 @@ class TrainingAdapter:
         Named dataset sources.  Each is a :class:`FamilyDataset` (name +
         underlying :class:`RobustSepDataset`).
     weight_policy:
-        Source weights for interleaving shard schedules.  Defaults to equal
-        weight for all families.
+        Source priority weights for interleaving shard schedules.  Full
+        epochs still visit every nonzero-weight shard once.
     batch_size:
         Number of patches per :class:`~robustsep_pkg.data.batching.ShardBatch`.
     drop_last:
@@ -184,8 +184,8 @@ class TrainingAdapter:
 
         This is the canonical handoff document for Codex's target-manifest
         generator.  It contains every parameter needed to reproduce the exact
-        sampling distribution and enrichment settings without instantiating a
-        :class:`TrainingAdapter`.
+        weighted shard ordering semantics and enrichment settings without
+        instantiating a :class:`TrainingAdapter`.
 
         Parameters
         ----------
@@ -235,7 +235,7 @@ class TrainingAdapter:
             "total_shards": self.num_shards,
             # Weight policy: full summary for manifest reproducibility.
             # Codex's target-manifest generator must read this to reconstruct
-            # the sampling distribution without instantiating a TrainingAdapter.
+            # schedule ordering semantics without instantiating a TrainingAdapter.
             "source_weight_policy": self._policy.policy_summary(all_family_names),
             # Alpha policy: the enrichment policy applied during this run.
             # Codex's generator must pass the same value to enrich_sample().
