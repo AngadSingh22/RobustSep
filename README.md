@@ -2,10 +2,6 @@
 
 **A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-139%2B%20passing-2ea44f)]()
-[![Status](https://img.shields.io/badge/Status-Under%20Review-orange)]()
 
 ---
 
