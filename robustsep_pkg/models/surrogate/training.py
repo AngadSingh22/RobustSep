@@ -16,9 +16,11 @@ except ImportError as exc:  # pragma: no cover
 
 from robustsep_pkg.core.artifact_io import read_json, sha256_file, write_json
 from robustsep_pkg.eval.metrics import delta_e_00, finite_quantile
+from robustsep_pkg.models.conditioning.drift import DriftSample, apply_drift
 from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, iter_surrogate_shard_batches
 from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN, SurrogateModelConfig
 from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig, evaluate_candidate_probe
+from robustsep_pkg.targets.teacher import calibrated_cmykogv_lab
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,14 @@ class SurrogateTrainingConfig:
     seed: int = 20260422
     device: str = "auto"
     progress_interval_batches: int = 100
+    initial_checkpoint: str | None = None
+
+
+@dataclass(frozen=True)
+class SurrogateLossConfig:
+    target_mode: str = "teacher_proxy"
+    hard_pixel_weight: float = 0.0
+    hard_pixel_quantile: float = 0.90
 
 
 @dataclass(frozen=True)
@@ -93,6 +103,7 @@ def train_surrogate(
     model_config: SurrogateModelConfig = SurrogateModelConfig(),
     gate_thresholds: SurrogateQualityGateThresholds = SurrogateQualityGateThresholds(),
     candidate_probe_config: CandidateProbeConfig = CandidateProbeConfig(),
+    loss_config: SurrogateLossConfig = SurrogateLossConfig(),
 ) -> SurrogateTrainingResult:
     torch.manual_seed(training_config.seed)
     device = _resolve_device(training_config.device)
@@ -103,8 +114,10 @@ def train_surrogate(
     manifest = read_json(manifest_path)
     dataset = SurrogateTrainingDataset(manifest_path, model_config=model_config)
     model = ForwardSurrogateCNN(model_config).to(device)
+    if training_config.initial_checkpoint:
+        checkpoint = torch.load(training_config.initial_checkpoint, map_location=device)
+        model.load_state_dict(checkpoint["model_state"])
     optimizer = torch.optim.AdamW(model.parameters(), lr=training_config.learning_rate, weight_decay=training_config.weight_decay)
-    loss_fn = nn.SmoothL1Loss()
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -124,6 +137,7 @@ def train_surrogate(
         "model_config": asdict(model_config),
         "gate_thresholds": asdict(gate_thresholds),
         "candidate_probe_config": asdict(candidate_probe_config),
+        "loss_config": asdict(loss_config),
         "training_loader": {
             "mode": "shard_stream",
             "shuffle_shards": True,
@@ -150,8 +164,8 @@ def train_surrogate(
         ):
             optimizer.zero_grad(set_to_none=True)
             pred = _forward_batch(model, batch, device)
-            target = batch["lab_center"].to(device, non_blocking=True).permute(0, 3, 1, 2).float()
-            loss = loss_fn(pred, target)
+            target = _target_batch(batch, device, loss_config)
+            loss = _surrogate_loss(pred, target, loss_config)
             loss.backward()
             optimizer.step()
             loss_value = float(loss.detach().cpu())
@@ -172,6 +186,17 @@ def train_surrogate(
                     },
                 )
 
+    _append_progress(
+        progress_path,
+        {
+            "phase": "quality_gate",
+            "batches_seen": batches_seen,
+            "examples_seen": examples_seen,
+            "mean_loss": float(np.mean(losses)) if losses else 0.0,
+            "probe_max_patches": candidate_probe_config.max_patches,
+            "probe_drift_samples": candidate_probe_config.drift_sample_count,
+        },
+    )
     quality = evaluate_surrogate_quality(
         model,
         dataset,
@@ -198,6 +223,7 @@ def train_surrogate(
             "training_config": asdict(training_config),
             "gate_thresholds": asdict(gate_thresholds),
             "candidate_probe_config": asdict(candidate_probe_config),
+            "loss_config": asdict(loss_config),
             "manifest_path": str(manifest_path),
             "manifest_sha256": manifest_sha256,
             "dataset_examples": len(dataset),
@@ -220,6 +246,31 @@ def train_surrogate(
     return result
 
 
+def diagnose_surrogate_quality(
+    quality: SurrogateQualityMetrics,
+    thresholds: SurrogateQualityGateThresholds = SurrogateQualityGateThresholds(),
+) -> dict[str, Any]:
+    """Classify quality-gate failures into actionable training adjustments."""
+    failures = {
+        "mean_delta_e00": quality.mean_delta_e00 > thresholds.threshold_mean,
+        "q90_delta_e00": quality.q90_delta_e00 > thresholds.threshold_q90,
+        "spearman": quality.spearman < thresholds.threshold_spearman,
+        "top1_agreement": quality.top1_agreement < thresholds.threshold_top1,
+    }
+    actions: list[str] = []
+    if failures["mean_delta_e00"]:
+        actions.append("continue_teacher_proxy_regression")
+    if failures["q90_delta_e00"]:
+        actions.append("increase_hard_pixel_tail_weight")
+    if failures["spearman"] or failures["top1_agreement"]:
+        actions.append("keep_teacher_proxy_targets_and_expand_candidate_probe")
+    return {
+        "passed": quality.passed,
+        "failures": failures,
+        "recommended_actions": actions,
+    }
+
+
 @torch.no_grad()
 def evaluate_surrogate_quality(
     model: ForwardSurrogateCNN,
@@ -231,18 +282,12 @@ def evaluate_surrogate_quality(
     candidate_probe_config: CandidateProbeConfig = CandidateProbeConfig(),
 ) -> SurrogateQualityMetrics:
     model.eval()
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
-    errors: list[np.ndarray] = []
-    for batch in loader:
-        pred = _forward_batch(model, batch, torch.device(device)).detach().cpu().permute(0, 2, 3, 1).numpy()
-        target = batch["lab_center"].numpy()
-        errors.append(delta_e_00(pred, target).reshape(-1))
-    flat = np.concatenate(errors, axis=0) if errors else np.zeros((0,), dtype=np.float32)
-    fallback_mean = float(np.mean(flat)) if flat.size else 0.0
-    fallback_q90 = finite_quantile(flat, 0.90) if flat.size else 0.0
     probe = evaluate_candidate_probe(model, dataset, device=device, config=candidate_probe_config)
-    mean = probe.mean_delta_e00 if probe.ranking_evaluated else fallback_mean
-    q90 = probe.q90_delta_e00 if probe.ranking_evaluated else fallback_q90
+    if probe.ranking_evaluated:
+        mean = probe.mean_delta_e00
+        q90 = probe.q90_delta_e00
+    else:
+        mean, q90 = _evaluate_delta_e_fallback(model, dataset, device=device, batch_size=batch_size)
     metrics = SurrogateQualityMetrics(
         mean_delta_e00=mean,
         q90_delta_e00=q90,
@@ -261,6 +306,60 @@ def evaluate_surrogate_quality(
         ),
     )
     return metrics
+
+
+@torch.no_grad()
+def _evaluate_delta_e_fallback(
+    model: ForwardSurrogateCNN,
+    dataset: SurrogateTrainingDataset,
+    *,
+    device: torch.device | str,
+    batch_size: int,
+) -> tuple[float, float]:
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    errors: list[np.ndarray] = []
+    for batch in loader:
+        pred = _forward_batch(model, batch, torch.device(device)).detach().cpu().permute(0, 2, 3, 1).numpy()
+        target = batch["lab_center"].numpy()
+        errors.append(delta_e_00(pred, target).reshape(-1))
+    flat = np.concatenate(errors, axis=0) if errors else np.zeros((0,), dtype=np.float32)
+    return (float(np.mean(flat)) if flat.size else 0.0, finite_quantile(flat, 0.90) if flat.size else 0.0)
+
+
+def _target_batch(batch: dict[str, Any], device: torch.device | str, loss_config: SurrogateLossConfig) -> torch.Tensor:
+    if loss_config.target_mode == "lab_anchor":
+        return batch["lab_center"].to(device, non_blocking=True).permute(0, 3, 1, 2).float()
+    if loss_config.target_mode != "teacher_proxy":
+        raise ValueError(f"unknown surrogate target_mode: {loss_config.target_mode}")
+    return _teacher_proxy_target_batch(batch, device)
+
+
+def _teacher_proxy_target_batch(batch: dict[str, Any], device: torch.device | str) -> torch.Tensor:
+    context = batch["cmykogv_context"].detach().cpu().numpy().astype(np.float32)
+    lab_anchor = batch["lab_center"].detach().cpu().numpy().astype(np.float32)
+    multipliers = batch["drift_multipliers"].detach().cpu().numpy().astype(np.float32)
+    trc_x = batch["drift_trc_x"].detach().cpu().numpy().astype(np.float32)
+    trc_y = batch["drift_trc_y"].detach().cpu().numpy().astype(np.float32)
+    start = (context.shape[1] - 16) // 2
+    center = context[:, start : start + 16, start : start + 16, :]
+    targets: list[np.ndarray] = []
+    for idx in range(center.shape[0]):
+        drift = DriftSample(multipliers=multipliers[idx], trc_x=trc_x[idx], trc_y=trc_y[idx])
+        drifted = apply_drift(center[idx], drift)
+        targets.append(calibrated_cmykogv_lab(drifted, anchor_cmykogv=center[idx], anchor_lab=lab_anchor[idx]))
+    target = np.stack(targets, axis=0).astype(np.float32)
+    return torch.from_numpy(target).to(device, non_blocking=True).permute(0, 3, 1, 2).float()
+
+
+def _surrogate_loss(pred: torch.Tensor, target: torch.Tensor, loss_config: SurrogateLossConfig) -> torch.Tensor:
+    per_channel = nn.functional.smooth_l1_loss(pred, target, reduction="none")
+    per_pixel = per_channel.mean(dim=1)
+    if loss_config.hard_pixel_weight <= 0.0:
+        return per_pixel.mean()
+    q = min(max(float(loss_config.hard_pixel_quantile), 0.0), 1.0)
+    thresholds = torch.quantile(per_pixel.detach().flatten(1), q, dim=1).reshape(-1, 1, 1)
+    weights = 1.0 + float(loss_config.hard_pixel_weight) * (per_pixel.detach() >= thresholds).float()
+    return (per_pixel * weights).sum() / weights.sum().clamp_min(1.0)
 
 
 def _forward_batch(model: ForwardSurrogateCNN, batch: dict[str, Any], device: torch.device | str) -> torch.Tensor:

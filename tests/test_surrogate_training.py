@@ -9,8 +9,11 @@ from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, iter_s
 from robustsep_pkg.models.surrogate.model import SurrogateModelConfig
 from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig
 from robustsep_pkg.models.surrogate.training import (
+    SurrogateLossConfig,
     SurrogateQualityGateThresholds,
+    SurrogateQualityMetrics,
     SurrogateTrainingConfig,
+    diagnose_surrogate_quality,
     evaluate_surrogate_quality,
     train_surrogate,
 )
@@ -47,6 +50,9 @@ class SurrogateTrainingTests(unittest.TestCase):
         self.assertEqual(len(ds), 2)
         self.assertEqual(tuple(sample["cmykogv_context"].shape), (32, 32, 7))
         self.assertEqual(tuple(sample["lab_center"].shape), (16, 16, 3))
+        self.assertEqual(tuple(sample["drift_multipliers"].shape), (7,))
+        self.assertEqual(tuple(sample["drift_trc_x"].shape), (9,))
+        self.assertEqual(tuple(sample["drift_trc_y"].shape), (7, 9))
         self.assertEqual(tuple(sample["drift_vector"].shape), (56,))
         self.assertEqual(tuple(numeric.shape), (SurrogateModelConfig().ppp_numeric_dim,))
         self.assertEqual(tuple(mask.shape), (SurrogateModelConfig().ppp_override_mask_dim,))
@@ -79,6 +85,7 @@ class SurrogateTrainingTests(unittest.TestCase):
                 manifest_path,
                 root / "train",
                 training_config=SurrogateTrainingConfig(batch_size=2, epochs=1, device="cpu"),
+                loss_config=SurrogateLossConfig(target_mode="teacher_proxy", hard_pixel_weight=0.5),
                 gate_thresholds=SurrogateQualityGateThresholds(
                     threshold_mean=1e9,
                     threshold_q90=1e9,
@@ -98,6 +105,25 @@ class SurrogateTrainingTests(unittest.TestCase):
             self.assertEqual(result.quality.probe_candidates_per_patch, 5)
             self.assertEqual(result.quality.probe_drifts_per_candidate, 2)
             self.assertTrue(result.quality.passed)
+
+    def test_gate_diagnosis_maps_failures_to_actions(self) -> None:
+        metrics = SurrogateQualityMetrics(
+            mean_delta_e00=6.0,
+            q90_delta_e00=11.0,
+            spearman=0.5,
+            top1_agreement=0.4,
+            ranking_evaluated=True,
+            probe_patches_evaluated=8,
+            probe_candidates_per_patch=5,
+            probe_drifts_per_candidate=2,
+            passed=False,
+        )
+        diagnosis = diagnose_surrogate_quality(metrics)
+
+        self.assertTrue(diagnosis["failures"]["mean_delta_e00"])
+        self.assertTrue(diagnosis["failures"]["q90_delta_e00"])
+        self.assertIn("increase_hard_pixel_tail_weight", diagnosis["recommended_actions"])
+        self.assertIn("keep_teacher_proxy_targets_and_expand_candidate_probe", diagnosis["recommended_actions"])
 
     def test_quality_gate_uses_probe_metrics_and_respects_thresholds(self) -> None:
         import torch

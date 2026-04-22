@@ -53,6 +53,10 @@ def main(argv: list[str] | None = None) -> int:
     train.add_argument("--num-workers", type=int, default=0)
     train.add_argument("--seed", type=int, default=20260422)
     train.add_argument("--device", default="auto")
+    train.add_argument("--initial-checkpoint", default=None)
+    train.add_argument("--loss-target-mode", default="teacher_proxy", choices=("teacher_proxy", "lab_anchor"))
+    train.add_argument("--hard-pixel-weight", type=float, default=0.0)
+    train.add_argument("--hard-pixel-quantile", type=float, default=0.90)
     _add_gate_args(train)
     train.set_defaults(func=_cmd_train_surrogate)
 
@@ -182,6 +186,7 @@ def _cmd_write_surrogate_shards(args: argparse.Namespace) -> int:
 def _cmd_train_surrogate(args: argparse.Namespace) -> int:
     from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig
     from robustsep_pkg.models.surrogate.training import (
+        SurrogateLossConfig,
         SurrogateQualityGateThresholds,
         SurrogateTrainingConfig,
         train_surrogate,
@@ -198,6 +203,7 @@ def _cmd_train_surrogate(args: argparse.Namespace) -> int:
             num_workers=args.num_workers,
             seed=args.seed,
             device=args.device,
+            initial_checkpoint=args.initial_checkpoint,
         ),
         gate_thresholds=_thresholds_from_args(args),
         candidate_probe_config=CandidateProbeConfig(
@@ -205,6 +211,11 @@ def _cmd_train_surrogate(args: argparse.Namespace) -> int:
             root_seed=args.probe_root_seed,
             max_patches=args.probe_max_patches,
             batch_size=args.probe_batch_size,
+        ),
+        loss_config=SurrogateLossConfig(
+            target_mode=args.loss_target_mode,
+            hard_pixel_weight=args.hard_pixel_weight,
+            hard_pixel_quantile=args.hard_pixel_quantile,
         ),
     )
     print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
