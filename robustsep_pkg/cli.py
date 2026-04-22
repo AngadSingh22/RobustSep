@@ -65,6 +65,15 @@ def main(argv: list[str] | None = None) -> int:
     _add_gate_args(gate)
     gate.set_defaults(func=_cmd_eval_surrogate_gate)
 
+    paper_eval = sub.add_parser("run-paper-eval", help="Run the paper Evaluation-section metric suite")
+    _add_target_args(paper_eval)
+    paper_eval.add_argument("--out", required=True, help="Output evaluation report JSON")
+    paper_eval.add_argument("--visual-npz", help="Optional NPZ with Lab/error-map visual example arrays")
+    paper_eval.add_argument("--eval-drift-samples", type=int, default=32)
+    paper_eval.add_argument("--visual-examples", type=int, default=8)
+    paper_eval.add_argument("--edge-threshold", type=float, default=2.0)
+    paper_eval.set_defaults(func=_cmd_run_paper_eval)
+
     args = parser.parse_args(argv)
     return int(args.func(args) or 0)
 
@@ -232,6 +241,30 @@ def _cmd_eval_surrogate_gate(args: argparse.Namespace) -> int:
     payload = {"checkpoint": args.checkpoint, "manifest": args.manifest, "device": str(device), "quality": quality.to_dict()}
     write_json(args.out, payload)
     print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+def _cmd_run_paper_eval(args: argparse.Namespace) -> int:
+    from robustsep_pkg.eval.suite import PaperEvalConfig, run_paper_evaluation_suite
+
+    ppp = _ppp_from_args(args)
+    target_config = _target_pipeline_config(args)
+    summary = run_paper_evaluation_suite(
+        args.split_manifest,
+        ppp,
+        args.out,
+        root=args.root,
+        config=PaperEvalConfig(
+            max_records=args.max_records,
+            drift_samples=args.eval_drift_samples,
+            root_seed=20260422,
+            visual_examples=args.visual_examples,
+            edge_threshold=args.edge_threshold,
+            target_config=target_config,
+        ),
+        visual_npz=args.visual_npz,
+    )
+    print(json.dumps(summary.to_dict(), indent=2, sort_keys=True))
     return 0
 
 
