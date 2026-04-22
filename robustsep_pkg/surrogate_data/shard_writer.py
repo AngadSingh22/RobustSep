@@ -9,6 +9,7 @@ import numpy as np
 
 from robustsep_pkg.core.artifact_io import canonical_json_hash, sha256_file, write_json, write_jsonl
 from robustsep_pkg.models.conditioning.ppp import PPP
+from robustsep_pkg.targets.teacher import calibrated_cmykogv_lab
 
 
 @dataclass(frozen=True)
@@ -131,7 +132,7 @@ def _iter_surrogate_rows(generated_records: Iterable[Any], ppp: PPP) -> Iterator
             }
             yield _SurrogateRow(
                 cmykogv_context=np.asarray(example.cmykogv_context, dtype=np.float32),
-                lab_center=np.asarray(example.lab_center, dtype=np.float32),
+                lab_center=_teacher_lab_for_example(example),
                 intent_raster=np.asarray(example.intent_raster, dtype=np.float32),
                 intent_weights=intent_weights,
                 lambda_value=float(example.lambda_value),
@@ -165,6 +166,16 @@ def _write_one_shard(out_dir: Path, shard_index: int, rows: list[_SurrogateRow])
         "npz_sha256": sha256_file(npz_path),
         "jsonl_sha256": sha256_file(jsonl_path),
     }
+
+
+def _teacher_lab_for_example(example: Any) -> np.ndarray:
+    context = np.asarray(example.cmykogv_context, dtype=np.float32)
+    drifted = np.asarray(example.drifted_context, dtype=np.float32)
+    lab = np.asarray(example.lab_center, dtype=np.float32)
+    start = (context.shape[0] - 16) // 2
+    anchor = context[start : start + 16, start : start + 16, :]
+    values = drifted[start : start + 16, start : start + 16, :]
+    return calibrated_cmykogv_lab(values, anchor_cmykogv=anchor, anchor_lab=lab)
 
 
 def _drift_hash(drift: Any) -> str:

@@ -133,6 +133,10 @@ def render_cmykogv_lab_proxy(values: np.ndarray) -> np.ndarray:
     return (_LAB_BIAS + np.tensordot(y, _LAB_JACOBIAN.T, axes=1)).astype(np.float32)
 
 
+def _calibrated_render(y: np.ndarray, anchor_y: np.ndarray, anchor_lab: np.ndarray) -> np.ndarray:
+    return (anchor_lab + render_cmykogv_lab_proxy(y) - render_cmykogv_lab_proxy(anchor_y)).astype(np.float32)
+
+
 def _stage1_gradient(
     y: np.ndarray,
     y0: np.ndarray,
@@ -144,8 +148,8 @@ def _stage1_gradient(
     alpha_ogv: float,
     alpha_neutral: float,
 ) -> np.ndarray:
-    pred = render_cmykogv_lab_proxy(y)
-    anchor = render_cmykogv_lab_proxy(y0)
+    pred = _calibrated_render(y, y0, lab_ref)
+    anchor = lab_ref
     grad_lab = alpha_app * _weighted_lab_residual(pred, lab_ref, weights)
     grad_lab += alpha_anchor * _weighted_lab_residual(pred, anchor, weights)
     grad = _lab_to_ink_gradient(grad_lab)
@@ -176,7 +180,7 @@ def _stage2_gradient(
         idx = _risk_selected_index(y, lab_ref, weights, drift_samples, risk_q)
         drift = drift_samples[idx]
         drifted = apply_drift(y, drift)
-        pred = render_cmykogv_lab_proxy(drifted)
+        pred = _calibrated_render(drifted, y_stage1, lab_ref)
         grad_lab = _weighted_lab_residual(pred, lab_ref, weights)
         drift_scale = drift.multipliers.reshape((1, 1, -1)).astype(np.float32)
         grad += beta_risk * _lab_to_ink_gradient(grad_lab) * drift_scale
@@ -196,8 +200,8 @@ def _stage1_objective(
     alpha_ogv: float,
     alpha_neutral: float,
 ) -> float:
-    pred = render_cmykogv_lab_proxy(y)
-    anchor = render_cmykogv_lab_proxy(y0)
+    pred = _calibrated_render(y, y0, lab_ref)
+    anchor = lab_ref
     app = _weighted_delta_e(pred, lab_ref, weights)
     anch = _weighted_delta_e(pred, anchor, weights)
     ogv = float(np.sum(weights * y[..., 4:7].sum(axis=-1)))
@@ -218,7 +222,7 @@ def _stage2_objective(
 ) -> float:
     risk = 0.0
     if drift_samples:
-        errors = [_weighted_delta_e(render_cmykogv_lab_proxy(apply_drift(y, drift)), lab_ref, weights) for drift in drift_samples]
+        errors = [_weighted_delta_e(_calibrated_render(apply_drift(y, drift), y_stage1, lab_ref), lab_ref, weights) for drift in drift_samples]
         idx = max(0, min(len(errors) - 1, int(np.ceil(risk_q * len(errors))) - 1))
         risk = float(np.sort(np.asarray(errors, dtype=np.float32))[idx])
     trust = float(np.sum(weights[..., None] * _TRUST_CHANNEL_WEIGHTS.reshape((1, 1, -1)) * (y - y_stage1) ** 2))
@@ -240,7 +244,7 @@ def _risk_selected_index(
     if not drift_samples:
         return -1
     errors = np.asarray(
-        [_weighted_delta_e(render_cmykogv_lab_proxy(apply_drift(y, drift)), lab_ref, weights) for drift in drift_samples],
+        [_weighted_delta_e(_calibrated_render(apply_drift(y, drift), y, lab_ref), lab_ref, weights) for drift in drift_samples],
         dtype=np.float32,
     )
     order = np.argsort(errors, kind="mergesort")

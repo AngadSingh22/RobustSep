@@ -18,7 +18,7 @@ from robustsep_pkg.models.conditioning.ppp import PPP
 from robustsep_pkg.models.refiner.solver import pi_k
 from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset
 from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN
-from robustsep_pkg.targets.solver import render_cmykogv_lab_proxy
+from robustsep_pkg.targets.teacher import calibrated_cmykogv_lab
 
 
 @dataclass(frozen=True)
@@ -189,7 +189,7 @@ def _evaluate_one_patch(
     for candidate_index, context in enumerate(candidate_contexts):
         center = _center_patch(context)
         for drift in drift_bank:
-            teacher_lab = render_cmykogv_lab_proxy(apply_drift(center, drift))
+            teacher_lab = calibrated_cmykogv_lab(apply_drift(center, drift), anchor_cmykogv=center, anchor_lab=lab_ref)
             teacher_labs.append(teacher_lab)
             teacher_risk_by_candidate[candidate_index].append(float(np.mean(delta_e_00(teacher_lab, lab_ref))))
             contexts.append(context)

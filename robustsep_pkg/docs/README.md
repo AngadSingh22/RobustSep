@@ -19,7 +19,18 @@ pip install -e .
 ```
 
 ## Running Scripts
-Run scripts from the repository root with `PYTHONPATH` set to the checkout:
+The package exposes a consolidated CLI:
+
+```bash
+PYTHONPATH=. python -m robustsep_pkg.cli --help
+PYTHONPATH=. python -m robustsep_pkg.cli export-split-manifest --help
+PYTHONPATH=. python -m robustsep_pkg.cli generate-targets --help
+PYTHONPATH=. python -m robustsep_pkg.cli write-surrogate-shards --help
+PYTHONPATH=. python -m robustsep_pkg.cli train-surrogate --help
+PYTHONPATH=. python -m robustsep_pkg.cli eval-surrogate-gate --help
+```
+
+Repository-level data preparation scripts are still available directly:
 
 ```bash
 PYTHONPATH=. python scripts/prepare_robustsep_dataset.py --help
@@ -29,12 +40,29 @@ PYTHONPATH=. python scripts/apply_icc_cmyk_to_shards.py --help
 
 ## Current Smoke Path
 ```bash
+PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli export-split-manifest \
+  --family robustsep=data/external/manifests/robustsep_patches_icc_run_manifest.json \
+  --family doclaynet=data/external/manifests/doclaynet_patches_icc_run_manifest.json \
+  --family sku110k=data/external/manifests/sku110k_patches_icc_run_manifest.json \
+  --weight robustsep=1.0 --weight doclaynet=0.5 --weight sku110k=0.5 \
+  --root . --split train --alpha-policy ones \
+  --out artifacts/cli_smoke/train_split_manifest_v11.json
+
+PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli write-surrogate-shards \
+  --split-manifest artifacts/cli_smoke/train_split_manifest_v11.json \
+  --root . --out-dir artifacts/cli_smoke/surrogate_shards \
+  --max-records 32 --drift-samples-per-patch 2 --stage1-steps 2 --stage2-steps 1
+
+PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli train-surrogate \
+  --manifest artifacts/cli_smoke/surrogate_shards/surrogate_training_manifest.json \
+  --out-dir artifacts/cli_smoke/surrogate_train_gpu --device cuda \
+  --probe-drift-samples 2 --probe-max-patches 1
+
 PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
 ```
 
-There is no checked-in `robustsep_pkg/scripts/train_vae.py` entrypoint yet. Model code,
-surrogate data generation, and target-generation modules are available as package APIs and
-should be wired into explicit CLIs after the surrogate quality probe is implemented.
+The VAE proposer training CLI is still a future step; the current CLI covers target
+generation, surrogate shard generation, surrogate training, and surrogate gate evaluation.
 
 ## Reproducibility
 *   **Source of truth**: `robustsep_pkg` + `pyproject.toml`.

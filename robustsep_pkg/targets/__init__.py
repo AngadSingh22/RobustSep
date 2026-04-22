@@ -13,6 +13,7 @@ from robustsep_pkg.targets.generation_pipeline import (
 from robustsep_pkg.targets.generator import TargetGenerationResult, generate_target_from_icc_cmyk, initialize_cmykogv_from_icc
 from robustsep_pkg.targets.manifest import TargetManifestRecord
 from robustsep_pkg.targets.solver import ProjectedGradientTrace, projected_gradient_solve
+from robustsep_pkg.targets.teacher import calibrated_cmykogv_lab
 
 __all__ = [
     "TeacherMode",
@@ -30,4 +31,5 @@ __all__ = [
     "initialize_cmykogv_from_icc",
     "generate_target_from_icc_cmyk",
     "projected_gradient_solve",
+    "calibrated_cmykogv_lab",
 ]
