@@ -113,11 +113,11 @@ If you find this work or code useful in your research, please consider citing ou
 
 ## Authors & Acknowledgements
 
-- **Shreeya Srivastava$^\dagger$** - Constrained Image-Synthesis Lab
-- **Angad Singh Ahuja$^\dagger$** - Constrained Image-Synthesis Lab
-- **Pranjal Wala$^\dagger$** - Constrained Image-Synthesis Lab
+- **Shreeya Srivastava<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
+- **Angad Singh Ahuja<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
+- **Pranjal Wala<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
 - **Rushabh Lodha** - IIT Mandi
 
-*$^\dagger$ Equal Contribution*
+*<sup>&dagger;</sup> Equal Contribution*
 
 > Please refer to the `paper/main/` directory for the full LaTeX compilation of the manuscript.
