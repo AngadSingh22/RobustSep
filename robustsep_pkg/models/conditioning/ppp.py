@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -116,6 +116,8 @@ class PPP:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    _VALID_PAIR_KEYS: ClassVar[frozenset[str]] = frozenset({"CO", "MG", "YV"})
+
     def validate(self) -> None:
         missing = [c for c in CHANNELS_CMYKOGV if c not in self.caps]
         if missing:
@@ -129,6 +131,9 @@ class PPP:
                 raise ValueError(f"unknown channel in caps: {channel}")
             if cap < 0:
                 raise ValueError(f"channel cap must be nonnegative: {channel}")
+        invalid_pairs = set(self.pair_caps.keys()) - self._VALID_PAIR_KEYS
+        if invalid_pairs:
+            raise ValueError(f"PPP pair_caps contains unknown keys: {sorted(invalid_pairs)}; valid keys are {sorted(self._VALID_PAIR_KEYS)}")
 
     @property
     def hash(self) -> str:

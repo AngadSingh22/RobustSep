@@ -4,6 +4,8 @@ import math
 
 import numpy as np
 
+from robustsep_pkg.preprocess.patches import raised_cosine_window
+
 
 def finite_quantile(values: np.ndarray, q: float) -> float:
     arr = np.sort(np.asarray(values, dtype=np.float64).reshape(-1))
@@ -108,15 +110,51 @@ def patch_error(
     alpha_gamma: float = 1.0,
     tail_q: float | None = None,
     rho_tail: float = 0.0,
+    patch_window: np.ndarray | None = None,
 ) -> float:
-    gain = (
+    """Compute the intent-weighted patch error as specified.
+
+    Per-pixel weight: ``W_p = omega(p) * alpha(p)^gamma_alpha * intent_gain(p)``
+
+    where ``omega`` is the raised-cosine window, ``intent_gain(p) =
+    1 + beta_B*B(p) + beta_G*G(p) + beta_F*F(p)``, and ``intent_maps``
+    values may be either per-pixel arrays or per-patch scalars.
+
+    Parameters
+    ----------
+    delta_e:
+        Per-pixel DeltaE00 values; shape ``(H, W)`` or ``(N,)``.
+    alpha:
+        Per-pixel alpha mask; same shape as *delta_e*.
+    intent_maps:
+        Dict with optional keys ``"brand"``, ``"gradient"``, ``"flat"``;
+        values are per-pixel arrays or per-patch scalars.
+    patch_window:
+        Raised-cosine window ``omega`` of the same spatial shape as *delta_e*.
+        When ``None``, the window is inferred from the shape of *delta_e* (only
+        valid for square patches; otherwise pass an explicit array).
+    """
+    # Build omega — raised-cosine window; infer size from delta_e if not given.
+    d_e = np.asarray(delta_e, dtype=np.float32)
+    if patch_window is None:
+        # If delta_e is 2-D square, auto-generate the matching window.
+        if d_e.ndim == 2 and d_e.shape[0] == d_e.shape[1]:
+            omega = raised_cosine_window(d_e.shape[0])
+        else:
+            # Non-square or 1-D input: fall back to unit window (all ones).
+            omega = np.ones_like(d_e, dtype=np.float32)
+    else:
+        omega = np.asarray(patch_window, dtype=np.float32)
+
+    intent_gain = (
         1.0
-        + beta_brand * intent_maps.get("brand", 0.0)
-        + beta_gradient * intent_maps.get("gradient", 0.0)
-        + beta_flat * intent_maps.get("flat", 0.0)
+        + beta_brand * np.asarray(intent_maps.get("brand", 0.0), dtype=np.float32)
+        + beta_gradient * np.asarray(intent_maps.get("gradient", 0.0), dtype=np.float32)
+        + beta_flat * np.asarray(intent_maps.get("flat", 0.0), dtype=np.float32)
     )
-    weights = np.power(np.clip(alpha.astype(np.float32), 0.0, 1.0), alpha_gamma) * gain
-    mean = weighted_mean(delta_e, weights)
+    alpha_w = np.power(np.clip(np.asarray(alpha, dtype=np.float32), 0.0, 1.0), alpha_gamma)
+    weights = omega * alpha_w * intent_gain
+    mean = weighted_mean(d_e, weights)
     if tail_q is None or rho_tail == 0.0:
         return mean
-    return mean + rho_tail * weighted_order_statistic(delta_e, weights, tail_q)
+    return mean + rho_tail * weighted_order_statistic(d_e, weights, tail_q)

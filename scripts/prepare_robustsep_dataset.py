@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
+"""Prepare RobustSep patch shards from raw PNG/SVG sources.
+
+Patch arrays (rgb, lab, cmyk, cmyk_projected) and their JSONL metadata
+are written as compressed .npz/.jsonl shard pairs.  A run-manifest JSON
+records parameters, bucket counts, hashes, and shard entries.
+"""
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -16,74 +21,58 @@ from typing import Dict, Iterable, List, Tuple
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
+# ---------------------------------------------------------------------------
+# Import shared math from the package — no duplicate implementations.
+# ---------------------------------------------------------------------------
+from robustsep_pkg.core.artifact_io import read_json, sha256_file, write_json
+from robustsep_pkg.manifests.run_manifest import RunManifest
+from robustsep_pkg.preprocess.color import (
+    cmyk_to_cmykogv,
+    rgb_to_cmyk_baseline,
+    rgb_to_lab_d50,
+    srgb_to_linear,
+)
+from robustsep_pkg.models.conditioning.ppp import PPP, project_to_feasible
+from robustsep_pkg.core.channels import CHANNELS_CMYKOGV
+
 
 PATCH = 16
-D65 = np.array([0.95047, 1.0, 1.08883], dtype=np.float32)
-D50 = np.array([0.96422, 1.0, 0.82521], dtype=np.float32)
-SRGB_TO_XYZ_D65 = np.array(
-    [
-        [0.4124564, 0.3575761, 0.1804375],
-        [0.2126729, 0.7151522, 0.0721750],
-        [0.0193339, 0.1191920, 0.9503041],
-    ],
-    dtype=np.float32,
-)
-BRADFORD = np.array(
-    [
-        [0.8951, 0.2664, -0.1614],
-        [-0.7502, 1.7135, 0.0367],
-        [0.0389, -0.0685, 1.0296],
-    ],
-    dtype=np.float32,
-)
-BRADFORD_INV = np.linalg.inv(BRADFORD).astype(np.float32)
 
 
-def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        while True:
-            b = f.read(chunk_size)
-            if not b:
-                break
-            h.update(b)
-    return h.hexdigest()
+# ---------------------------------------------------------------------------
+# Thin forwarding shims kept so that prepare_doclaynet_patches.py can still
+# import ``write_shard`` and ``classify_patch`` from this module unchanged.
+# All heavy math delegates to the package.
+# ---------------------------------------------------------------------------
 
+def _project_ppp_cmyk(cmyk: np.ndarray, tac_max: float = 3.0) -> np.ndarray:
+    """Project a CMYK-only array (last axis 4) by TAC cap only.
 
-def srgb_to_linear(rgb: np.ndarray) -> np.ndarray:
-    return np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
-
-
-def linear_to_lab_d50(linear_rgb: np.ndarray) -> np.ndarray:
-    xyz_d65 = np.tensordot(linear_rgb, SRGB_TO_XYZ_D65.T, axes=1)
-    src = BRADFORD @ D65
-    dst = BRADFORD @ D50
-    adapt = BRADFORD_INV @ np.diag(dst / src) @ BRADFORD
-    xyz_d50 = np.tensordot(xyz_d65, adapt.T, axes=1)
-    scaled = xyz_d50 / D50
-    eps = 216 / 24389
-    kappa = 24389 / 27
-    f = np.where(scaled > eps, np.cbrt(np.maximum(scaled, 0)), (kappa * scaled + 16) / 116)
-    l = 116 * f[..., 1] - 16
-    a = 500 * (f[..., 0] - f[..., 1])
-    b = 200 * (f[..., 1] - f[..., 2])
-    return np.stack([l, a, b], axis=-1).astype(np.float32)
-
-
-def rgb_to_cmyk_baseline(rgb: np.ndarray) -> np.ndarray:
-    cmy = 1.0 - rgb
-    k = np.min(cmy, axis=-1, keepdims=True)
-    denom = np.maximum(1.0 - k, 1e-6)
-    cmy_out = np.where(k >= 0.999, 0.0, (cmy - k) / denom)
-    return np.concatenate([cmy_out, k], axis=-1).astype(np.float32)
-
-
-def project_ppp(cmyk: np.ndarray, tac_max: float = 3.0) -> np.ndarray:
+    This is the conservative pre-OGV projection used during shard staging
+    (OGV channels are zero, so only TAC matters here).
+    """
     y = np.clip(cmyk, 0.0, 1.0).astype(np.float32)
     tac = np.sum(y, axis=-1, keepdims=True)
     scale = np.minimum(1.0, tac_max / np.maximum(tac, 1e-6))
-    return y * scale
+    return (y * scale).astype(np.float32)
 
+
+def project_ppp(cmyk: np.ndarray, tac_max: float = 3.0) -> np.ndarray:
+    """Public shim: TAC-only PPP projection for CMYK staging arrays."""
+    return _project_ppp_cmyk(cmyk, tac_max)
+
+
+def linear_to_lab_d50(linear_rgb: np.ndarray) -> np.ndarray:
+    """sRGB linear -> Lab D50.  Delegates to :func:`robustsep_pkg.preprocess.color`."""
+    from robustsep_pkg.preprocess.color import adapt_xyz_d65_to_d50, linear_rgb_to_xyz_d65, xyz_d50_to_lab
+    return xyz_d50_to_lab(adapt_xyz_d65_to_d50(linear_rgb_to_xyz_d65(
+        np.asarray(linear_rgb, dtype=np.float32)
+    )))
+
+
+# ---------------------------------------------------------------------------
+# Local staging helpers (patch classification, image iteration, quarantine)
+# ---------------------------------------------------------------------------
 
 def edge_score(rgba: np.ndarray) -> float:
     rgb = rgba[..., :3].astype(np.float32) / 255.0
@@ -100,10 +89,7 @@ def classify_patch(rgba: np.ndarray) -> Tuple[str, str, Dict[str, float]]:
     alpha = rgba[..., 3].astype(np.float32) / 255.0
     mask = alpha >= 0.0625
     visible = float(mask.mean())
-    if mask.any():
-        vals = rgb[mask]
-    else:
-        vals = rgb.reshape(-1, 3)
+    vals = rgb[mask] if mask.any() else rgb.reshape(-1, 3)
     mx = vals.max(axis=1)
     mn = vals.min(axis=1)
     sat = np.zeros_like(mx)
@@ -183,60 +169,6 @@ def maybe_crop(im: Image.Image, bbox: Tuple[int, int, int, int] | None, min_gain
     return im, {"cropped": False, "bbox": list(bbox), "bbox_area_ratio": area_ratio}
 
 
-def sample_from_image(
-    path: Path,
-    rng: random.Random,
-    min_visible: float,
-    stride: int,
-    max_per_image: int,
-    bucket_counts: Counter,
-    bucket_cap: int,
-) -> List[dict]:
-    with Image.open(path) as opened:
-        im = opened.convert("RGBA")
-    bbox = alpha_bbox(im, 16)
-    im, crop_meta = maybe_crop(im, bbox, 0.82)
-    w, h = im.size
-    if w < PATCH or h < PATCH:
-        return []
-    candidates = []
-    coords = [(x, y) for y in range(0, h - PATCH + 1, stride) for x in range(0, w - PATCH + 1, stride)]
-    rng.shuffle(coords)
-    for x, y in coords:
-        patch = np.asarray(im.crop((x, y, x + PATCH, y + PATCH)), dtype=np.uint8)
-        visible = float((patch[..., 3] >= 16).mean())
-        if visible < min_visible:
-            continue
-        structure, color, stats = classify_patch(patch)
-        bucket = f"{structure}/{color}"
-        if bucket_counts[bucket] >= bucket_cap:
-            continue
-        patch_rgb = patch[..., :3].astype(np.float32) / 255.0
-        linear = srgb_to_linear(patch_rgb)
-        lab = linear_to_lab_d50(linear)
-        cmyk = rgb_to_cmyk_baseline(patch_rgb)
-        cmyk_projected = project_ppp(cmyk)
-        bucket_counts[bucket] += 1
-        candidates.append(
-            {
-                "source_path": str(path),
-                "x": x,
-                "y": y,
-                "crop_meta": crop_meta,
-                "structure": structure,
-                "color": color,
-                "stats": stats,
-                "rgb": patch_rgb.astype(np.float16),
-                "lab": lab.astype(np.float16),
-                "cmyk": cmyk.astype(np.float16),
-                "cmyk_projected": cmyk_projected.astype(np.float16),
-            }
-        )
-        if len(candidates) >= max_per_image:
-            break
-    return candidates
-
-
 def write_shard(records: List[dict], out_dir: Path, shard_id: int) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     arrays = {
@@ -292,6 +224,60 @@ def generate_color_supplements(out_dir: Path, tile_size: int = 64) -> List[Path]
         Image.fromarray(arr, "RGBA").save(p)
         outputs.append(p)
     return outputs
+
+
+def sample_from_image(
+    path: Path,
+    rng: random.Random,
+    min_visible: float,
+    stride: int,
+    max_per_image: int,
+    bucket_counts: Counter,
+    bucket_cap: int,
+) -> List[dict]:
+    with Image.open(path) as opened:
+        im = opened.convert("RGBA")
+    bbox = alpha_bbox(im, 16)
+    im, crop_meta = maybe_crop(im, bbox, 0.82)
+    w, h = im.size
+    if w < PATCH or h < PATCH:
+        return []
+    candidates = []
+    coords = [(x, y) for y in range(0, h - PATCH + 1, stride) for x in range(0, w - PATCH + 1, stride)]
+    rng.shuffle(coords)
+    for x, y in coords:
+        patch = np.asarray(im.crop((x, y, x + PATCH, y + PATCH)), dtype=np.uint8)
+        visible = float((patch[..., 3] >= 16).mean())
+        if visible < min_visible:
+            continue
+        structure, color, stats = classify_patch(patch)
+        bucket = f"{structure}/{color}"
+        if bucket_counts[bucket] >= bucket_cap:
+            continue
+        # Use package functions for all math.
+        patch_rgb = patch[..., :3].astype(np.float32) / 255.0
+        lab = rgb_to_lab_d50(srgb_to_linear(patch_rgb))
+        cmyk = rgb_to_cmyk_baseline(patch_rgb)
+        cmyk_projected = _project_ppp_cmyk(cmyk)
+        bucket_counts[bucket] += 1
+        candidates.append(
+            {
+                "source_path": str(path),
+                "x": x,
+                "y": y,
+                "crop_meta": crop_meta,
+                "structure": structure,
+                "color": color,
+                "stats": stats,
+                "rgb": patch_rgb.astype(np.float16),
+                "lab": lab.astype(np.float16),
+                "cmyk": cmyk.astype(np.float16),
+                "cmyk_projected": cmyk_projected.astype(np.float16),
+            }
+        )
+        if len(candidates) >= max_per_image:
+            break
+    return candidates
 
 
 def main() -> int:
@@ -389,7 +375,7 @@ def main() -> int:
     }
     manifest_name = f"{out_dir.name}_run_manifest.json"
     manifest_path = manifest_dir / manifest_name
-    manifest_path.write_text(json.dumps(run_manifest, indent=2, sort_keys=True), encoding="utf-8")
+    write_json(manifest_path, run_manifest)
     print(json.dumps({"patches_written": total, "manifest": str(manifest_path)}, indent=2))
     return 0
 

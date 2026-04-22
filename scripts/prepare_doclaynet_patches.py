@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Prepare RobustSep patch shards from DocLayNet parquet files.
+
+Delegates all math (Lab conversion, CMYK baseline, TAC projection) to
+``robustsep_pkg`` via the shared shims in ``prepare_robustsep_dataset``.
+"""
 from __future__ import annotations
 
 import argparse
@@ -14,17 +19,23 @@ import numpy as np
 import pyarrow.parquet as pq
 from PIL import Image
 
+# ---------------------------------------------------------------------------
+# Resolve the scripts/ directory so the sibling module is importable whether
+# this script is run from the repo root or from scripts/.
+# ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from prepare_robustsep_dataset import (  # noqa: E402
     PATCH,
     classify_patch,
     project_ppp,
-    rgb_to_cmyk_baseline,
-    sha256_file,
-    srgb_to_linear,
-    linear_to_lab_d50,
     write_shard,
 )
+
+# ---------------------------------------------------------------------------
+# All heavy math imported directly from the package.
+# ---------------------------------------------------------------------------
+from robustsep_pkg.core.artifact_io import sha256_file, write_json
+from robustsep_pkg.preprocess.color import rgb_to_cmyk_baseline, rgb_to_lab_d50, srgb_to_linear
 
 
 def sample_page(
@@ -52,7 +63,7 @@ def sample_page(
         if bucket_counts[bucket] >= bucket_cap:
             continue
         rgb = patch[..., :3].astype(np.float32) / 255.0
-        lab = linear_to_lab_d50(srgb_to_linear(rgb))
+        lab = rgb_to_lab_d50(srgb_to_linear(rgb))
         cmyk = rgb_to_cmyk_baseline(rgb)
         cmyk_projected = project_ppp(cmyk)
         bucket_counts[bucket] += 1
@@ -173,7 +184,7 @@ def main() -> int:
         },
     }
     manifest_path = manifest_dir / f"{out_dir.name}_run_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    write_json(manifest_path, manifest)
     print(json.dumps({"patches_written": total_patches, "pages_seen": pages_seen, "manifest": str(manifest_path)}, indent=2))
     return 0
 
