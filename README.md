@@ -1,65 +1,162 @@
-# RobustSep: A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging
+# RobustSep
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+**A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging**
 
-This repository contains the official implementation of **RobustSep**, as detailed in the paper:
-*"RobustSep: A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging"*.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/Tests-139%2B%20passing-2ea44f)]()
+[![Status](https://img.shields.io/badge/Status-Under%20Review-orange)]()
+
+---
 
 ## Abstract
 
-RGB-to-CMYK color separation for packaging presents a complex inverse problem, characterized by the absence of stable press characterization data and notable physical process drift. Current deterministic approaches, relying on ICC profiles, presuppose idealized conditions and lack formal assurances against perceptual degradation, whereas unconstrained learned models frequently fail to adhere to stringent print-production standards. This paper introduces **RobustSep**, a non-deterministic architecture for packaging color separation that amalgamates stochastic candidate generation, physics-informed refinement, and drift-aware evaluation into a cohesive inference pipeline. At the core of our methodology is the Press Prior Package (PPP), a structured entity encoding process-family constraints and drift distributions, independent of proprietary calibration data. We employ a conditional variational autoencoder (CVAE) for ink candidate generation, which undergoes refinement through a two-pass feasibility pipeline, and is evaluated by a lightweight forward surrogate network under simulated drift conditions. Candidate selection is directed by a 90th-percentile tail-risk criterion across the intent-weighted CIEDE2000 error distribution.
+RGB-to-CMYK color separation for packaging is an underdetermined inverse problem: for any target appearance, a continuous family of ink configurations exists that produces perceptually equivalent printed output. Existing approaches either assume a fully characterized, stable press — an assumption that breaks down in practice — or learn an unconstrained mapping that ignores the hard physical limits packaging production imposes.
+
+RobustSep addresses both gaps within a single architecture. Rather than committing to a single deterministic output, the system generates a population of CMYKOGV ink candidates via a conditional variational autoencoder (CVAE), enforces printability through a two-pass physics-informed refiner, and selects the candidate that minimizes worst-case perceptual error across a distribution of simulated drift conditions. Selection uses a 90th-percentile tail-risk criterion over the intent-weighted CIEDE2000 error distribution — prioritizing candidates that remain acceptable under adverse process variation, not merely on average.
+
+All press-specific knowledge is externalized into the **Press Prior Package (PPP)**: a structured inference-time object encoding process-family constraints and drift distributions without requiring proprietary calibration data. Swapping the PPP adapts the pipeline to a new press family without retraining.
+
+---
+
+## Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Press Prior Package (PPP)                 │
+│       process-family constraints · drift distributions      │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+           ┌───────────┴────────────┐
+           ▼                        ▼
+  ┌─────────────────┐      ┌──────────────────┐
+  │   Proposer      │      │ Drift simulation │
+  │   (CVAE)        │      │ (PPP-sampled)    │
+  │                 │      └────────┬─────────┘
+  │ CMYKOGV cands.  │               │
+  └────────┬────────┘               │
+           │                        │
+           ▼                        │
+  ┌─────────────────┐               │
+  │    Refiner      │               │
+  │ (Deterministic) │               │
+  │                 │               │
+  │ ΠK · TAC · neu- │               │
+  │ tral stability  │               │
+  └────────┬────────┘               │
+           │                        │
+           ▼                        │
+  ┌────────────────────────────────-┘
+  │    Evaluator                    │
+  │  (Micro-CNN surrogate)          │
+  │                                 │
+  │  CIEDE2000 error distribution   │
+  └────────┬────────────────────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │    Selector     │
+  │                 │
+  │  90th-pct tail- │
+  │  risk criterion │
+  └────────┬────────┘
+           │
+           ▼
+   Optimal CMYK separation
+   + decision report R
+```
+
+**Proposer.** A CVAE generates diverse CMYKOGV candidates conditioned on the PPP, target RGB patch, structure token, intent map, and a style knob λ ∈ {0.1, 0.5, 0.9} encoding safety-to-saturation intent. Three candidates are produced per patch by default (up to five in research mode), each with a distinct deterministic seed. Stochasticity here is deliberate: the selector can only achieve robustness over the diversity it is given.
+
+**Refiner.** Every candidate passes unconditionally through a two-pass deterministic refiner. Pass 1 applies spatial regularity smoothing and neutral/dark stabilization to suppress high-frequency separation artifacts. Pass 2 applies the projection operator Π_K: each channel is clipped to its PPP cap, then total area coverage (TAC) is scaled back to the PPP ceiling minus a small numerical margin. The output is guaranteed to lie inside the PPP feasibility envelope.
+
+**Evaluator.** A lightweight Micro-CNN surrogate (8-block dilated CNN with FiLM conditioning) approximates ICC-based press rendering over a 32×32 context window, scored on the inner 16×16 region. For each feasible candidate, 32 drift instances are sampled from the PPP drift distribution and applied channel-wise. The surrogate is queried under each drift instance, producing a per-candidate distribution of CIEDE2000 errors rather than a single scalar.
+
+**Selector.** Candidates are ranked by 90th-percentile intent-weighted CIEDE2000 error — a tail-risk criterion that eliminates candidates with catastrophic worst-case behavior even when their median error is low. Ties are broken by nominal error under identity drift. If no candidate survives the robustness gate, an escalation policy first increases K up to five, then (as a secondary fallback) increases the drift sample count. All escalation events are recorded in the decision report R.
+
+### Press Prior Package (PPP)
+
+The PPP is a two-tier JSON object. The first tier is a base family token mapping to pre-calibrated ink constraints, drift parameters, and neutral detection thresholds. The second tier is a sparse override layer for job-specific values such as a measured TAC ceiling or tighter per-channel caps; a binary override mask distinguishes deliberately set fields from inherited defaults.
+
+At inference time, the resolved PPP is encoded by a two-layer MLP into a 128-dimensional embedding, concatenated with a structure embedding (32-d), an intent embedding (128-d), and λ to form a unified conditioning vector c_u ∈ ℝ^289. This vector drives Feature-wise Linear Modulation (FiLM) throughout both the CVAE proposer and the forward surrogate.
+
+Five base families are defined in v1:
+
+| Base family | Process / Substrate |
+|---|---|
+| `film_generic_conservative` | Generic packaging films (default) |
+| `film_gravure_generic` | Gravure on film |
+| `film_flexo_generic` | Flexo on film |
+| `paperboard_generic` | Paperboard and carton |
+| `label_stock_generic` | Label stocks |
+
+### Intent Classification
+
+Each pixel is assigned to one of three intent classes from local image statistics, with no learned components:
+
+- **Brand** — logos, wordmarks, and spot-color regions. Colorimetric accuracy is a contractual requirement.
+- **Gradient** — smooth tonal transitions, vignettes, skin tones. Primary failure mode is contouring.
+- **Flat** — uniform fields where tonal stability and absence of banding dominate.
+
+Classification resolves in strict priority order (Brand > Gradient > Flat). Per-patch intent weights enter the pipeline both as spatial input channels to the proposer's first layer and as a coarse intent raster processed through a dedicated MLP, both propagating through FiLM into all downstream blocks.
+
+### Complexity
+
+Let H × W be image resolution, s = 16 the patch size, t the overlap stride, K the candidate count, N the drift samples per candidate, T_F the surrogate forward-pass cost, and T_R the refiner cost per candidate. The number of patches is approximately M ≈ ⌈H/t⌉ · ⌈W/t⌉. Total inference cost is:
+
+```
+T_total = O(M · K · (N · T_F + T_R))
+```
+
+Memory is dominated by patch buffering and candidate storage. Storing all candidates concurrently scales as O(M · K · s² · 7); a streaming implementation reduces this to O(K · s² · 7) per patch.
+
+---
 
 ## Repository Structure
 
-```text
+```
 RobustSepTraining/
-├── data/                  # Raw and processed datasets (DocLayNet, SKU110k, RobustSep splits)
-├── paper/                 # LaTeX source files for the manuscript
-├── robustsep_pkg/         # Core Python package module
-│   ├── data/              # Adapters, intent parsing, batching, and source-weighting
-│   ├── docs/              # Architectural specs and engineering documentation
-│   ├── engine/            # Multi-shot escalation and pipeline loop logic
-│   ├── surrogate_data/    # Surrogate training context extraction scripts
-│   └── targets/           # Dual-stage projected gradient solver for ground-truth generation
-├── scripts/               # Utility scripts for data preparation and pipeline execution
-└── tests/                 # Comprehensive unit test suite (139+ tests passing)
+├── data/                  # Raw and processed datasets
+│                          # (DocLayNet, SKU110k, RobustSep splits)
+├── paper/                 # LaTeX source for the manuscript
+│   └── main/              # Compiled paper (PDF)
+├── robustsep_pkg/         # Core Python package
+│   ├── data/              # Adapters, intent parsing, batching,
+│   │                      # A-Res source weighting (Vitter 1985)
+│   ├── docs/              # Architectural specs and engineering docs
+│   ├── engine/            # Multi-shot escalation and pipeline loop
+│   ├── surrogate_data/    # Surrogate training context extraction
+│   └── targets/           # Dual-stage projected gradient solver
+│                          # for ground-truth generation
+├── scripts/               # Data preparation and pipeline utilities
+└── tests/                 # Unit test suite (139+ tests passing)
 ```
 
-## System Architecture
-
-The core of the RobustSep paradigm is the *Propose $\rightarrow$ Refine $\rightarrow$ Evaluate $\rightarrow$ Select* pipeline:
-
-1. **Proposer (CVAE):** Generates diverse CMYKOGV ink candidates conditioned on the Press Prior Package (PPP) and target RGB patch.
-2. **Refiner (Deterministic):** Unconditionally enforces printability by applying the projection operator $\Pi_K$ for spatial regularity, neutral/dark stability, and hard TAC constraints.
-3. **Evaluator (Micro-CNN Surrogate):** Approximates physical press rendering under explicitly parameterized drift instances to evaluate tail-risk robustness.
-4. **Selector (Ranker):** Uses a multi-shot escalation policy to select the feasible candidate that minimizes the $90^{\text{th}}$ percentile intent-weighted CIEDE2000 perceptual deviation.
+---
 
 ## Installation
 
-RobustSep requires Python 3.10 or higher. All dependencies are managed seamlessly.
+Python 3.10 or higher is required.
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/RobustSepTraining.git
+git clone https://github.com/AngadSingh22/RobustSep.git
 cd RobustSepTraining
 
-# Set up a virtual environment
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# Install the package and dependencies
 pip install -e .
 ```
 
-## Usage Pipeline
+---
 
-### 1. Data Preparation and Shard Generation
+## Usage
 
-Export manifests and generate surrogate target shards explicitly capturing A-Res source weighting (Vitter 1985).
+### 1. Data preparation and shard generation
+
+Generate surrogate target shards. Source weighting uses A-Res reservoir sampling (Vitter, 1985).
 
 ```bash
-# Example for generating train-split surrogate data shards
 PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli write-surrogate-shards \
   --split-manifest artifacts/full_shards/train_split_manifest_v11.json \
   --root . \
@@ -71,9 +168,9 @@ PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli write-surrogate-shards \
   --stage2-steps 4
 ```
 
-### 2. Forward Surrogate Training
+### 2. Forward surrogate training
 
-Train the Micro-CNN surrogate to reliably evaluate perceptual behavior under simulated process drift conditions.
+Train the Micro-CNN surrogate under symmetric ICC supervision across nominal and drifted conditions.
 
 ```bash
 PYTHONUNBUFFERED=1 PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli train-surrogate \
@@ -85,9 +182,9 @@ PYTHONUNBUFFERED=1 PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli train-surr
   --learning-rate 0.001
 ```
 
-### 3. Quality Gate Evaluation
+### 3. Quality gate evaluation
 
-Execute the surrogate quality gates to ensure adherence to drift stability constraints before committing to broader pipeline deployment.
+Before deployment, the surrogate must pass a four-metric quality gate (mean ΔE₀₀, 90th-percentile ΔE₀₀, Spearman rank correlation, and top-1 agreement) against a fixed held-out drift bank, evaluated per PPP base family.
 
 ```bash
 PYTHONUNBUFFERED=1 PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli eval-surrogate-gate \
@@ -98,26 +195,44 @@ PYTHONUNBUFFERED=1 PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli eval-surro
   --batch-size 128
 ```
 
+---
+
+## Evaluation
+
+Evaluation is planned across five PPP base families on 1,000 RGB images processed patch-wise. Metrics cover three axes:
+
+**Color fidelity** — CIEDE2000 (ΔE₀₀), MSE, PSNR, SSIM.  
+**Structural preservation** — edge error (%).  
+**Print feasibility** — TAC compliance, per-channel ink consumption, neutral gray balance, K-channel distribution.
+
+Robustness is assessed at the 50th, 75th, and 90th percentiles of the ΔE₀₀ distribution across drift conditions. Ablations cover: Refiner on/off, Surrogate on/off, PPP constraints on/off, λ sweep (0.1 → 0.9), K = 3 vs K = 5, and per-PPP-family comparisons.
+
+Quantitative results will be reported once experimental runs are complete.
+
+---
+
 ## Citation
 
-If you find this work or code useful in your research, please consider citing our paper:
+If you use this code or build on this work, please cite:
 
 ```bibtex
 @article{srivastava2026robustsep,
-  title={RobustSep: A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging},
-  author={Srivastava et al.},
-  journal={TBD},
-  year={2026}
+  title   = {RobustSep: A Non-Deterministic Architecture for Robust,
+             Drift-Aware Color Separation in Packaging},
+  author  = {Srivastava, Shreeya and Ahuja, Angad Singh and Wala, Pranjal
+             and Lodha, Rushabh},
+  journal = {TBD},
+  year    = {2026}
 }
 ```
 
-## Authors & Acknowledgements
+---
 
-- **Shreeya Srivastava<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
-- **Angad Singh Ahuja<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
-- **Pranjal Wala<sup>&dagger;</sup>** - Constrained Image-Synthesis Lab
-- **Rushabh Lodha** - IIT Mandi
+## Authors
 
-*<sup>&dagger;</sup> Equal Contribution*
+Shreeya Srivastava\* · Angad Singh Ahuja\* · Pranjal Wala\* — Constrained Image-Synthesis Lab  
+Rushabh Lodha — IIT Mandi
 
-> Please refer to the `paper/main/` directory for the full LaTeX compilation of the manuscript.
+\* Equal contribution
+
+Full manuscript: [`paper/main/`](paper/main/)
