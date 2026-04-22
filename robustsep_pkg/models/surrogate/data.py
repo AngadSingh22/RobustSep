@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import numpy as np
 
@@ -84,6 +84,102 @@ class SurrogateTrainingDataset(Dataset):
         self._cache_arrays = arrays
         self._cache_records = records
         return arrays, records
+
+
+def iter_surrogate_shard_batches(
+    manifest_path: str | Path,
+    *,
+    batch_size: int,
+    model_config: SurrogateModelConfig = SurrogateModelConfig(),
+    seed: int = 20260422,
+    epoch: int = 0,
+    shuffle_shards: bool = True,
+    shuffle_within_shard: bool = True,
+    drop_last: bool = False,
+) -> Iterator[dict[str, Any]]:
+    """Yield training batches while loading each surrogate shard at most once.
+
+    The map-style dataset is intentionally kept for validation/probing, where
+    access is sequential. Training with global random shuffling is much more
+    expensive because every random sample can force a different compressed
+    ``.npz`` shard to be loaded. This iterator shuffles shard order and then
+    shuffles examples inside each loaded shard, preserving stochastic training
+    without repeated whole-shard reloads.
+    """
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+
+    manifest = read_json(Path(manifest_path))
+    ppp = PPP.from_dict(manifest["ppp"])
+    ppp_numeric, ppp_mask, base_family_index = ppp_condition_arrays(ppp, model_config)
+    shards = list(manifest["shards"])
+    rng = np.random.default_rng(int(seed) + 1000003 * int(epoch))
+    shard_order = np.arange(len(shards), dtype=np.int64)
+    if shuffle_shards:
+        rng.shuffle(shard_order)
+
+    for shard_idx in shard_order:
+        shard = shards[int(shard_idx)]
+        count = int(shard["count"])
+        with np.load(shard["npz"]) as data:
+            arrays = {key: data[key].copy() for key in data.files}
+        records = read_jsonl(shard["jsonl"])
+        if len(records) != count:
+            raise ValueError(f"{shard['jsonl']} has {len(records)} records, expected {count}")
+
+        order = np.arange(count, dtype=np.int64)
+        if shuffle_within_shard:
+            rng.shuffle(order)
+        for start in range(0, count, batch_size):
+            take = order[start : start + batch_size]
+            if drop_last and take.size < batch_size:
+                continue
+            yield _batch_from_shard_arrays(
+                arrays,
+                records,
+                take,
+                ppp_numeric=ppp_numeric,
+                ppp_mask=ppp_mask,
+                base_family_index=base_family_index,
+            )
+
+
+def _batch_from_shard_arrays(
+    arrays: dict[str, np.ndarray],
+    records: list[dict[str, Any]],
+    indices: np.ndarray,
+    *,
+    ppp_numeric: np.ndarray,
+    ppp_mask: np.ndarray,
+    base_family_index: int,
+) -> dict[str, Any]:
+    size = int(indices.size)
+    drift_vector = np.concatenate(
+        [
+            arrays["drift_multipliers"][indices].reshape(size, -1),
+            arrays["drift_trc_y"][indices, :, 1:-1].reshape(size, -1),
+        ],
+        axis=1,
+    ).astype(np.float32)
+    structure_index = np.asarray(
+        [STRUCTURE_TO_INDEX.get(records[int(i)].get("structure_token", "flat"), 1) for i in indices],
+        dtype=np.int64,
+    )
+    return {
+        "cmykogv_context": torch.from_numpy(arrays["cmykogv_context"][indices].astype(np.float32)),
+        "lab_center": torch.from_numpy(arrays["lab_center"][indices].astype(np.float32)),
+        "intent_raster": torch.from_numpy(arrays["intent_raster"][indices].astype(np.float32)),
+        "intent_weights": torch.from_numpy(arrays["intent_weights"][indices].astype(np.float32)),
+        "lambda_value": torch.from_numpy(arrays["lambda_value"][indices].astype(np.float32)),
+        "drift_vector": torch.from_numpy(drift_vector),
+        "base_family_index": torch.full((size,), int(base_family_index), dtype=torch.long),
+        "ppp_numeric": torch.from_numpy(np.broadcast_to(ppp_numeric, (size, ppp_numeric.size)).copy()),
+        "ppp_override_mask": torch.from_numpy(np.broadcast_to(ppp_mask, (size, ppp_mask.size)).copy()),
+        "structure_index": torch.from_numpy(structure_index),
+        "source_id": [records[int(i)].get("source_id", "") for i in indices],
+        "target_hash": [records[int(i)].get("target_hash", "") for i in indices],
+        "drift_hash": [records[int(i)].get("drift_hash", "") for i in indices],
+    }
 
 
 def ppp_condition_arrays(ppp: PPP, model_config: SurrogateModelConfig = SurrogateModelConfig()) -> tuple[np.ndarray, np.ndarray, int]:

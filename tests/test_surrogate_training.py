@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from robustsep_pkg.models.conditioning.ppp import PPP
-from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, ppp_condition_arrays
+from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, iter_surrogate_shard_batches, ppp_condition_arrays
 from robustsep_pkg.models.surrogate.model import SurrogateModelConfig
 from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig
 from robustsep_pkg.models.surrogate.training import (
@@ -52,6 +52,25 @@ class SurrogateTrainingTests(unittest.TestCase):
         self.assertEqual(tuple(mask.shape), (SurrogateModelConfig().ppp_override_mask_dim,))
         self.assertEqual(base_index, 0)
 
+    def test_shard_stream_batches_cover_epoch_without_random_shard_reloads(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            manifest_path, _ = self._write_surrogate_manifest(Path(td), n=5)
+            batches = list(
+                iter_surrogate_shard_batches(
+                    manifest_path,
+                    batch_size=2,
+                    seed=7,
+                    epoch=0,
+                    shuffle_shards=True,
+                    shuffle_within_shard=True,
+                )
+            )
+
+        self.assertEqual(sum(int(batch["lab_center"].shape[0]) for batch in batches), 5)
+        self.assertTrue(all(tuple(batch["cmykogv_context"].shape[1:]) == (32, 32, 7) for batch in batches))
+        self.assertTrue(all(tuple(batch["drift_vector"].shape[1:]) == (56,) for batch in batches))
+        self.assertTrue(all(tuple(batch["ppp_numeric"].shape[1:]) == (SurrogateModelConfig().ppp_numeric_dim,) for batch in batches))
+
     def test_train_surrogate_writes_checkpoint_and_report(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -71,6 +90,9 @@ class SurrogateTrainingTests(unittest.TestCase):
             self.assertGreater(result.train_loss, 0.0)
             self.assertTrue(Path(result.checkpoint_path).exists())
             self.assertTrue(Path(result.report_path).exists())
+            self.assertTrue(Path(result.config_path).exists())
+            self.assertTrue(Path(result.progress_path).exists())
+            self.assertEqual(result.dataset_examples, 4)
             self.assertTrue(result.quality.ranking_evaluated)
             self.assertEqual(result.quality.probe_patches_evaluated, 1)
             self.assertEqual(result.quality.probe_candidates_per_patch, 5)
