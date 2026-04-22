@@ -2,7 +2,6 @@
 
 **A Non-Deterministic Architecture for Robust, Drift-Aware Color Separation in Packaging**
 
-
 ---
 
 ## Abstract
@@ -215,8 +214,7 @@ If you use this code or build on this work, please cite:
 @article{srivastava2026robustsep,
   title   = {RobustSep: A Non-Deterministic Architecture for Robust,
              Drift-Aware Color Separation in Packaging},
-  author  = {Srivastava, Shreeya and Ahuja, Angad Singh and Wala, Pranjal
-             and Lodha, Rushabh},
+  author  = {Srivastava, Ahuja, Wala and Lodha}
   journal = {TBD},
   year    = {2026}
 }
