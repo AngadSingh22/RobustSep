@@ -14,10 +14,10 @@ class TeacherMode(str, Enum):
 @dataclass(frozen=True)
 class TargetSolverConfig:
     teacher_mode: TeacherMode = TeacherMode.ICC_ONLY
-    stage1_steps: int = 0
-    stage2_steps: int = 0
-    stage1_step_size: float = 0.0
-    stage2_step_size: float = 0.0
+    stage1_steps: int = 8
+    stage2_steps: int = 4
+    stage1_step_size: float = 0.002
+    stage2_step_size: float = 0.001
     alpha_app: float = 1.0
     alpha_anchor: float = 0.25
     alpha_ogv: float = 0.05
@@ -25,8 +25,9 @@ class TargetSolverConfig:
     beta_risk: float = 1.0
     beta_trust: float = 0.50
     beta_ogv: float = 0.10
+    risk_q: float = 0.90
     alpha_icc: float = 1.0
-    version: str = "target-solver-skeleton-v1"
+    version: str = "target-solver-two-stage-v1"
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)

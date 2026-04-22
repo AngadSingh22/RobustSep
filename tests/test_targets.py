@@ -4,6 +4,8 @@ import unittest
 
 import numpy as np
 
+from robustsep_pkg.core.config import DriftConfig
+from robustsep_pkg.models.conditioning.drift import sample_drift_bank
 from robustsep_pkg.models.conditioning.ppp import PPP, feasibility_violations
 from robustsep_pkg.targets import TargetSolverConfig, TeacherMode, generate_target_from_icc_cmyk, initialize_cmykogv_from_icc
 
@@ -38,13 +40,15 @@ class TargetGenerationTests(unittest.TestCase):
         ppp = PPP.from_base()
         cmyk = np.full((16, 16, 4), 0.2, dtype=np.float32)
         lab = np.zeros((16, 16, 3), dtype=np.float32)
-        config = TargetSolverConfig(teacher_mode=TeacherMode.ICC_ONLY, stage1_steps=2, stage1_step_size=0.0)
+        config = TargetSolverConfig(teacher_mode=TeacherMode.ICC_ONLY, stage1_steps=2, stage2_steps=1)
         a = generate_target_from_icc_cmyk(cmyk, lab, ppp, config=config, source_id="patch-a")
         b = generate_target_from_icc_cmyk(cmyk, lab, ppp, config=config, source_id="patch-a")
         np.testing.assert_allclose(a.target_cmykogv, b.target_cmykogv)
         self.assertEqual(a.manifest_record.target_hash, b.manifest_record.target_hash)
         self.assertEqual(a.manifest_record.teacher_mode, "icc_only")
         self.assertEqual(a.manifest_record.source_id, "patch-a")
+        self.assertIn("stage1_objective_initial", a.trace.diagnostics)
+        self.assertIn("stage2_objective_final", a.trace.diagnostics)
 
     def test_projected_gradient_hook_runs_and_closes(self) -> None:
         ppp = PPP.from_base("film_generic_conservative", {"tac_max": 1.5})
@@ -60,6 +64,21 @@ class TargetGenerationTests(unittest.TestCase):
         result = generate_target_from_icc_cmyk(cmyk, lab, ppp, config=config, gradient_fn=grad)
         self.assertGreater(float(result.target_cmykogv[..., 4].mean()), 0.0)
         self.assertFalse(any(feasibility_violations(result.target_cmykogv, ppp, lab_ref=lab).values()))
+
+    def test_two_stage_solver_uses_alpha_and_drift_inputs(self) -> None:
+        ppp = PPP.from_base()
+        cmyk = np.full((16, 16, 4), 0.15, dtype=np.float32)
+        lab = np.zeros((16, 16, 3), dtype=np.float32)
+        lab[..., 0] = 65.0
+        alpha = np.zeros((16, 16), dtype=np.float32)
+        alpha[:8, :] = 1.0
+        drift_bank = sample_drift_bank(DriftConfig(sample_count=3), 123, "patch", ppp.hash, (0, 0), sample_count=3)
+        config = TargetSolverConfig(stage1_steps=2, stage2_steps=2)
+        a = generate_target_from_icc_cmyk(cmyk, lab, ppp, config=config, alpha_weights=alpha, drift_samples=drift_bank)
+        b = generate_target_from_icc_cmyk(cmyk, lab, ppp, config=config, alpha_weights=alpha, drift_samples=drift_bank)
+        np.testing.assert_allclose(a.target_cmykogv, b.target_cmykogv)
+        self.assertGreaterEqual(a.trace.diagnostics["stage2_risk_selected_index"], 0.0)
+        self.assertFalse(any(feasibility_violations(a.target_cmykogv, ppp, lab_ref=lab).values()))
 
 
 if __name__ == "__main__":

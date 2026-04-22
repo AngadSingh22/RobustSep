@@ -152,24 +152,38 @@ def iter_generated_target_records(
                     ),
                 )
                 source_id = _source_id(family_name, shard["npz"], record, local_index)
+                drift_bank: tuple[DriftSample, ...] = ()
+                if config.drift_samples_per_patch > 0:
+                    drift_bank = tuple(
+                        sample_drift_bank(
+                            config.drift_config,
+                            root_seed,
+                            source_id,
+                            ppp.hash,
+                            (record.x, record.y),
+                            sample_count=config.drift_samples_per_patch,
+                        )
+                    )
                 target = generate_target_from_icc_cmyk(
                     enriched.sample.icc_cmyk,
                     enriched.lab,
                     ppp,
                     config=config.target_solver_config,
                     source_id=source_id,
+                    alpha_weights=enriched.alpha_effective,
+                    drift_samples=drift_bank,
                 )
                 examples: tuple[SurrogateExample, ...] = ()
-                if config.include_surrogate_examples and config.drift_samples_per_patch > 0:
+                if config.include_surrogate_examples and drift_bank:
                     examples = tuple(
                         _build_surrogate_examples(
                             target,
                             enriched,
                             ppp,
-                            root_seed=root_seed,
                             source_id=source_id,
                             sample_record=record,
                             config=config,
+                            drift_bank=drift_bank,
                         )
                     )
                 yield GeneratedTargetRecord(
@@ -229,22 +243,14 @@ def _build_surrogate_examples(
     enriched: EnrichedSample,
     ppp: PPP,
     *,
-    root_seed: int,
     source_id: str,
     sample_record: ShardRecord,
     config: TargetGenerationPipelineConfig,
+    drift_bank: Sequence[DriftSample],
 ) -> Iterator[SurrogateExample]:
     if enriched.intent_weights is None or enriched.intent_raster is None:
         raise ValueError("target pipeline requires recomputed intent weights and intent raster")
-    bank = sample_drift_bank(
-        config.drift_config,
-        root_seed,
-        source_id,
-        ppp.hash,
-        (sample_record.x, sample_record.y),
-        sample_count=config.drift_samples_per_patch,
-    )
-    for drift in bank:
+    for drift in drift_bank:
         yield build_surrogate_example(
             target.target_cmykogv,
             enriched.lab,

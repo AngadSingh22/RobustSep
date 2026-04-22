@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+
+from robustsep_pkg.models.conditioning.ppp import PPP
+from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset, ppp_condition_arrays
+from robustsep_pkg.models.surrogate.model import SurrogateModelConfig
+from robustsep_pkg.models.surrogate.training import (
+    SurrogateQualityGateThresholds,
+    SurrogateTrainingConfig,
+    train_surrogate,
+)
+from robustsep_pkg.surrogate_data import SurrogateShardWriterConfig, write_surrogate_training_shards
+from robustsep_pkg.targets import TargetGenerationPipelineConfig, generate_target_records
+from tests.test_target_generation_pipeline import _write_pipeline_fixture
+
+
+class SurrogateTrainingTests(unittest.TestCase):
+    def _write_surrogate_manifest(self, root: Path, n: int = 4) -> tuple[Path, PPP]:
+        split_manifest = _write_pipeline_fixture(root, n=n)
+        ppp = PPP.from_base()
+        records = generate_target_records(
+            split_manifest,
+            ppp,
+            root=root,
+            config=TargetGenerationPipelineConfig(drift_samples_per_patch=1),
+        )
+        summary = write_surrogate_training_shards(
+            records,
+            root / "surrogate",
+            ppp,
+            config=SurrogateShardWriterConfig(shard_size=2, run_id="train-unit"),
+        )
+        return Path(summary.manifest_path), ppp
+
+    def test_surrogate_training_dataset_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            manifest_path, ppp = self._write_surrogate_manifest(Path(td), n=2)
+            ds = SurrogateTrainingDataset(manifest_path)
+            sample = ds[0]
+            numeric, mask, base_index = ppp_condition_arrays(ppp)
+
+        self.assertEqual(len(ds), 2)
+        self.assertEqual(tuple(sample["cmykogv_context"].shape), (32, 32, 7))
+        self.assertEqual(tuple(sample["lab_center"].shape), (16, 16, 3))
+        self.assertEqual(tuple(sample["drift_vector"].shape), (56,))
+        self.assertEqual(tuple(numeric.shape), (SurrogateModelConfig().ppp_numeric_dim,))
+        self.assertEqual(tuple(mask.shape), (SurrogateModelConfig().ppp_override_mask_dim,))
+        self.assertEqual(base_index, 0)
+
+    def test_train_surrogate_writes_checkpoint_and_report(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest_path, _ = self._write_surrogate_manifest(root, n=4)
+            result = train_surrogate(
+                manifest_path,
+                root / "train",
+                training_config=SurrogateTrainingConfig(batch_size=2, epochs=1, device="cpu"),
+                gate_thresholds=SurrogateQualityGateThresholds(threshold_mean=1e9, threshold_q90=1e9),
+            )
+            self.assertGreater(result.train_loss, 0.0)
+            self.assertTrue(Path(result.checkpoint_path).exists())
+            self.assertTrue(Path(result.report_path).exists())
+            self.assertTrue(result.quality.passed)
+
+
+if __name__ == "__main__":
+    unittest.main()
