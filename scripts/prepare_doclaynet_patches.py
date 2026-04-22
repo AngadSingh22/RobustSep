@@ -19,6 +19,10 @@ import numpy as np
 import pyarrow.parquet as pq
 from PIL import Image
 
+# Allow `python scripts/prepare_doclaynet_patches.py` from a source checkout
+# without requiring an editable install first.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # ---------------------------------------------------------------------------
 # Resolve the scripts/ directory so the sibling module is importable whether
 # this script is run from the repo root or from scripts/.
@@ -35,7 +39,7 @@ from prepare_robustsep_dataset import (  # noqa: E402
 # All heavy math imported directly from the package.
 # ---------------------------------------------------------------------------
 from robustsep_pkg.core.artifact_io import sha256_file, write_json
-from robustsep_pkg.preprocess.color import rgb_to_cmyk_baseline, rgb_to_lab_d50, srgb_to_linear
+from robustsep_pkg.preprocess.color import rgb_to_cmyk_baseline, rgb_to_lab_d50
 
 
 def sample_page(
@@ -63,7 +67,7 @@ def sample_page(
         if bucket_counts[bucket] >= bucket_cap:
             continue
         rgb = patch[..., :3].astype(np.float32) / 255.0
-        lab = rgb_to_lab_d50(srgb_to_linear(rgb))
+        lab = rgb_to_lab_d50(rgb)
         cmyk = rgb_to_cmyk_baseline(rgb)
         cmyk_projected = project_ppp(cmyk)
         bucket_counts[bucket] += 1

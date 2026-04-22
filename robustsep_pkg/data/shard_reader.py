@@ -38,18 +38,58 @@ class ShardArrays:
     __slots__ = ("rgb", "alpha", "lab", "icc_cmyk", "cmyk_baseline", "cmykogv_baseline")
 
     def __init__(self, npz_path: str | Path) -> None:
-        data = np.load(str(npz_path))
-        self.rgb: np.ndarray = data["rgb"].astype(np.float32)
-        self.lab: np.ndarray = data["lab"].astype(np.float32)
-        # ``cmyk`` is the raw baseline (GCR or ICC); ``cmyk_projected`` is
-        # the PPP-feasibility-projected view of it.
-        self.icc_cmyk: np.ndarray = data["cmyk"].astype(np.float32)
-        self.cmyk_baseline: np.ndarray = data["cmyk_projected"].astype(np.float32)
-        # Synthesise alpha: shards do not store an explicit alpha channel yet;
-        # staged images were all RGBA but only RGB+targets were persisted.
-        self.alpha: np.ndarray = np.ones(self.rgb.shape[:3], dtype=np.float32)
-        # CMYKOGV baseline: cmyk_projected with OGV = 0.
-        self.cmykogv_baseline: np.ndarray = cmyk_to_cmykogv(self.cmyk_baseline)
+        with np.load(str(npz_path)) as data:
+            self.rgb = data["rgb"].astype(np.float32)
+            self.lab = data["lab"].astype(np.float32)
+            # ``cmyk`` is the raw baseline (GCR or ICC); ``cmyk_projected`` is
+            # the PPP-feasibility-projected view of it.
+            self.icc_cmyk = data["cmyk"].astype(np.float32)
+            self.cmyk_baseline = data.get("cmyk_projected", data["cmyk"]).astype(np.float32)
+            if "alpha" in data:
+                alpha = data["alpha"].astype(np.float32)
+                if alpha.ndim == 4 and alpha.shape[-1] == 1:
+                    alpha = alpha[..., 0]
+                self.alpha = np.clip(alpha, 0.0, 1.0)
+            else:
+                # Existing staged shards do not persist alpha. They were
+                # alpha-filtered during sampling, so expose an all-visible
+                # tensor until the staging format is upgraded.
+                self.alpha = np.ones(self.rgb.shape[:3], dtype=np.float32)
+            # CMYKOGV baseline: projected CMYK with OGV = 0.
+            self.cmykogv_baseline = cmyk_to_cmykogv(self.cmyk_baseline)
+        self._validate_shapes(npz_path)
+
+    def _validate_shapes(self, npz_path: str | Path) -> None:
+        n = self.rgb.shape[0]
+        expected = {
+            "rgb": (n, 16, 16, 3),
+            "alpha": (n, 16, 16),
+            "lab": (n, 16, 16, 3),
+            "icc_cmyk": (n, 16, 16, 4),
+            "cmyk_baseline": (n, 16, 16, 4),
+            "cmykogv_baseline": (n, 16, 16, 7),
+        }
+        actual = {
+            "rgb": self.rgb.shape,
+            "alpha": self.alpha.shape,
+            "lab": self.lab.shape,
+            "icc_cmyk": self.icc_cmyk.shape,
+            "cmyk_baseline": self.cmyk_baseline.shape,
+            "cmykogv_baseline": self.cmykogv_baseline.shape,
+        }
+        for name, shape in expected.items():
+            if actual[name] != shape:
+                raise ValueError(f"{npz_path}: expected {name} shape {shape}, got {actual[name]}")
+
+    def sample(self, index: int) -> dict[str, np.ndarray]:
+        return {
+            "rgb": self.rgb[index],
+            "alpha": self.alpha[index],
+            "lab": self.lab[index],
+            "icc_cmyk": self.icc_cmyk[index],
+            "cmyk_baseline": self.cmyk_baseline[index],
+            "cmykogv_baseline": self.cmykogv_baseline[index],
+        }
 
 
 class ShardReader:
@@ -96,6 +136,9 @@ class ShardReader:
     def load_arrays(self) -> ShardArrays:
         """Load and return all dense arrays for this shard."""
         return ShardArrays(self._resolve(self._entry.npz))
+
+    def load_records(self) -> list[ShardRecord]:
+        return list(self.iter_records())
 
     def iter_records(self) -> Iterator[ShardRecord]:
         """Yield one :class:`~robustsep_pkg.data.shard_record.ShardRecord` per patch."""

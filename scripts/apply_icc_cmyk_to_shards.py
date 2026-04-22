@@ -15,6 +15,10 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageCms
 
+# Allow `python scripts/apply_icc_cmyk_to_shards.py` from a source checkout
+# without requiring an editable install first.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 # ---------------------------------------------------------------------------
 # All math from the package — no local duplicates.
 # ---------------------------------------------------------------------------

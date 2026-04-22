@@ -13,6 +13,7 @@ import math
 import os
 import random
 import shutil
+import sys
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,6 +21,10 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 from PIL import Image, UnidentifiedImageError
+
+# Allow `python scripts/prepare_robustsep_dataset.py` from a source checkout
+# without requiring an editable install first.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # ---------------------------------------------------------------------------
 # Import shared math from the package — no duplicate implementations.
@@ -30,10 +35,9 @@ from robustsep_pkg.preprocess.color import (
     cmyk_to_cmykogv,
     rgb_to_cmyk_baseline,
     rgb_to_lab_d50,
-    srgb_to_linear,
 )
-from robustsep_pkg.models.conditioning.ppp import PPP, project_to_feasible
-from robustsep_pkg.core.channels import CHANNELS_CMYKOGV
+from robustsep_pkg.models.conditioning.ppp import PPP
+from robustsep_pkg.models.refiner.solver import pi_k
 
 
 PATCH = 16
@@ -46,15 +50,14 @@ PATCH = 16
 # ---------------------------------------------------------------------------
 
 def _project_ppp_cmyk(cmyk: np.ndarray, tac_max: float = 3.0) -> np.ndarray:
-    """Project a CMYK-only array (last axis 4) by TAC cap only.
+    """Project a CMYK-only array through the package CMYKOGV feasibility path.
 
-    This is the conservative pre-OGV projection used during shard staging
-    (OGV channels are zero, so only TAC matters here).
+    Existing staged shards store CMYK, not CMYKOGV.  To keep one feasibility
+    implementation, pad OGV as zero, project with `pi_k`, then return CMYK.
     """
-    y = np.clip(cmyk, 0.0, 1.0).astype(np.float32)
-    tac = np.sum(y, axis=-1, keepdims=True)
-    scale = np.minimum(1.0, tac_max / np.maximum(tac, 1e-6))
-    return (y * scale).astype(np.float32)
+    ppp = PPP.from_base("film_generic_conservative", {"tac_max": tac_max})
+    projected = pi_k(cmyk_to_cmykogv(cmyk), ppp)
+    return projected[..., :4].astype(np.float32)
 
 
 def project_ppp(cmyk: np.ndarray, tac_max: float = 3.0) -> np.ndarray:
@@ -256,7 +259,7 @@ def sample_from_image(
             continue
         # Use package functions for all math.
         patch_rgb = patch[..., :3].astype(np.float32) / 255.0
-        lab = rgb_to_lab_d50(srgb_to_linear(patch_rgb))
+        lab = rgb_to_lab_d50(patch_rgb)
         cmyk = rgb_to_cmyk_baseline(patch_rgb)
         cmyk_projected = _project_ppp_cmyk(cmyk)
         bucket_counts[bucket] += 1

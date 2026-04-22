@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
+
 
 @dataclass(frozen=True)
 class ShardEntry:
@@ -77,3 +79,24 @@ class ShardRecord:
         }
         out.update(self.extra)
         return out
+
+
+@dataclass(frozen=True)
+class ShardSample:
+    rgb: np.ndarray
+    alpha: np.ndarray
+    lab: np.ndarray
+    icc_cmyk: np.ndarray
+    cmyk_baseline: np.ndarray
+    cmykogv_baseline: np.ndarray
+    record: ShardRecord
+
+    def tensors(self) -> dict[str, np.ndarray]:
+        return {
+            "rgb": self.rgb,
+            "alpha": self.alpha,
+            "lab": self.lab,
+            "icc_cmyk": self.icc_cmyk,
+            "cmyk_baseline": self.cmyk_baseline,
+            "cmykogv_baseline": self.cmykogv_baseline,
+        }

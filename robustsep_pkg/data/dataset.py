@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from robustsep_pkg.core.artifact_io import read_json
-from robustsep_pkg.data.shard_record import ShardEntry, ShardRecord
+from robustsep_pkg.data.shard_record import ShardEntry, ShardRecord, ShardSample
 from robustsep_pkg.data.shard_reader import ShardArrays, ShardReader
 from robustsep_pkg.data.split import SPLIT_TRAIN, SPLITS, deterministic_split
 
@@ -66,6 +66,7 @@ class RobustSepDataset:
         self._root_seed = root_seed
 
         self._readers: list[ShardReader] = []
+        self._manifest_paths: list[Path] = []
         self._total_patches: int = 0
 
         for mp in manifest_paths:
@@ -77,7 +78,12 @@ class RobustSepDataset:
 
     def _load_manifest(self, manifest_path: Path) -> None:
         """Parse a run-manifest JSON and register the relevant shard readers."""
+        if not manifest_path.is_absolute() and not manifest_path.exists():
+            candidate = self._root / manifest_path
+            if candidate.exists():
+                manifest_path = candidate
         manifest: dict[str, Any] = read_json(manifest_path)
+        self._manifest_paths.append(manifest_path)
         raw_shards: list[dict[str, Any]] = manifest.get("shards", [])
         if not raw_shards:
             return
@@ -128,6 +134,40 @@ class RobustSepDataset:
             records = list(reader.iter_records())
             yield arrays, records
 
+    def iter_samples(self) -> Iterator[ShardSample]:
+        """Yield individual patch samples across selected shards.
+
+        This is convenient for smoke tests and simple CPU pipelines. Training
+        code should usually consume `iter_shards()` to avoid repeatedly loading
+        the same shard.
+        """
+        for arrays, records in self.iter_shards():
+            if len(records) != arrays.rgb.shape[0]:
+                raise ValueError(f"metadata count {len(records)} does not match array count {arrays.rgb.shape[0]}")
+            for i, record in enumerate(records):
+                yield ShardSample(record=record, **arrays.sample(i))
+
+    def __iter__(self) -> Iterator[ShardSample]:
+        return self.iter_samples()
+
+    def __getitem__(self, index: int) -> ShardSample:
+        if index < 0:
+            index += len(self)
+        if index < 0 or index >= len(self):
+            raise IndexError(index)
+        offset = 0
+        for reader in self._readers:
+            next_offset = offset + reader.count
+            if offset <= index < next_offset:
+                local_index = index - offset
+                arrays = reader.load_arrays()
+                records = reader.load_records()
+                if local_index >= len(records):
+                    raise IndexError(f"metadata for local index {local_index} missing in {reader.entry.jsonl}")
+                return ShardSample(record=records[local_index], **arrays.sample(local_index))
+            offset = next_offset
+        raise IndexError(index)
+
     def shard_readers(self) -> list[ShardReader]:
         """Return the list of :class:`~robustsep_pkg.data.shard_reader.ShardReader` objects."""
         return list(self._readers)
@@ -141,6 +181,7 @@ class RobustSepDataset:
             "val_frac": self._val_frac,
             "test_frac": self._test_frac,
             "root_seed": self._root_seed,
+            "manifests": [str(p) for p in self._manifest_paths],
         }
 
     @classmethod
