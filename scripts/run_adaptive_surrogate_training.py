@@ -34,8 +34,11 @@ def main() -> int:
     parser.add_argument("--threshold-q90", type=float, default=5.0)
     parser.add_argument("--threshold-spearman", type=float, default=0.80)
     parser.add_argument("--threshold-top1", type=float, default=0.80)
+    parser.add_argument("--threshold-mean-regret", type=float, default=0.25)
+    parser.add_argument("--threshold-q90-regret", type=float, default=1.0)
     parser.add_argument("--initial-hard-pixel-weight", type=float, default=0.0)
-    parser.add_argument("--max-hard-pixel-weight", type=float, default=3.0)
+    parser.add_argument("--loss-target-mode", default="teacher_delta", choices=("teacher_delta", "teacher_proxy", "lab_anchor"))
+    parser.add_argument("--continue-after-structural-diagnosis", action="store_true")
     args = parser.parse_args()
 
     out_root = Path(args.out_dir)
@@ -45,6 +48,8 @@ def main() -> int:
         threshold_q90=args.threshold_q90,
         threshold_spearman=args.threshold_spearman,
         threshold_top1=args.threshold_top1,
+        threshold_mean_regret=args.threshold_mean_regret,
+        threshold_q90_regret=args.threshold_q90_regret,
     )
     probe = CandidateProbeConfig(
         drift_sample_count=args.probe_drift_samples,
@@ -76,7 +81,7 @@ def main() -> int:
             gate_thresholds=thresholds,
             candidate_probe_config=probe,
             loss_config=SurrogateLossConfig(
-                target_mode="teacher_proxy",
+                target_mode=args.loss_target_mode,
                 hard_pixel_weight=hard_pixel_weight,
                 hard_pixel_quantile=0.90,
             ),
@@ -98,11 +103,14 @@ def main() -> int:
         checkpoint = result.checkpoint_path
         if result.quality.passed:
             break
-        failures = diagnosis["failures"]
-        if failures.get("q90_delta_e00"):
-            hard_pixel_weight = min(args.max_hard_pixel_weight, max(1.0, hard_pixel_weight * 1.5 if hard_pixel_weight > 0 else 1.0))
-        if failures.get("spearman") or failures.get("top1_agreement"):
-            learning_rate *= args.lr_decay
+        actions = set(diagnosis["recommended_actions"])
+        if "fix_teacher_schema_normalization_or_data" in actions and not args.continue_after_structural_diagnosis:
+            break
+        if "relax_margin_tied_ranking_gate" in actions and not args.continue_after_structural_diagnosis:
+            break
+        if "add_candidate_distribution_training_and_rank_loss" in actions and not args.continue_after_structural_diagnosis:
+            break
+        learning_rate *= args.lr_decay
 
     return 0
 

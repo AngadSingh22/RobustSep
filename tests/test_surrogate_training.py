@@ -47,9 +47,13 @@ class SurrogateTrainingTests(unittest.TestCase):
             sample = ds[0]
             numeric, mask, base_index = ppp_condition_arrays(ppp)
 
-        self.assertEqual(len(ds), 2)
+        self.assertEqual(len(ds), 10)
         self.assertEqual(tuple(sample["cmykogv_context"].shape), (32, 32, 7))
+        self.assertEqual(tuple(sample["lab_ref_center"].shape), (16, 16, 3))
+        self.assertEqual(tuple(sample["teacher_lab_nominal"].shape), (16, 16, 3))
+        self.assertEqual(tuple(sample["teacher_lab_drifted"].shape), (16, 16, 3))
         self.assertEqual(tuple(sample["lab_center"].shape), (16, 16, 3))
+        self.assertEqual(tuple(sample["candidate_type_index"].shape), ())
         self.assertEqual(tuple(sample["drift_multipliers"].shape), (7,))
         self.assertEqual(tuple(sample["drift_trc_x"].shape), (9,))
         self.assertEqual(tuple(sample["drift_trc_y"].shape), (7, 9))
@@ -72,8 +76,10 @@ class SurrogateTrainingTests(unittest.TestCase):
                 )
             )
 
-        self.assertEqual(sum(int(batch["lab_center"].shape[0]) for batch in batches), 5)
+        self.assertEqual(sum(int(batch["lab_center"].shape[0]) for batch in batches), 25)
         self.assertTrue(all(tuple(batch["cmykogv_context"].shape[1:]) == (32, 32, 7) for batch in batches))
+        self.assertTrue(all(tuple(batch["lab_ref_center"].shape[1:]) == (16, 16, 3) for batch in batches))
+        self.assertTrue(all(tuple(batch["teacher_lab_drifted"].shape[1:]) == (16, 16, 3) for batch in batches))
         self.assertTrue(all(tuple(batch["drift_vector"].shape[1:]) == (56,) for batch in batches))
         self.assertTrue(all(tuple(batch["ppp_numeric"].shape[1:]) == (SurrogateModelConfig().ppp_numeric_dim,) for batch in batches))
 
@@ -85,7 +91,7 @@ class SurrogateTrainingTests(unittest.TestCase):
                 manifest_path,
                 root / "train",
                 training_config=SurrogateTrainingConfig(batch_size=2, epochs=1, device="cpu"),
-                loss_config=SurrogateLossConfig(target_mode="teacher_proxy", hard_pixel_weight=0.5),
+                loss_config=SurrogateLossConfig(target_mode="teacher_delta", hard_pixel_weight=0.5),
                 gate_thresholds=SurrogateQualityGateThresholds(
                     threshold_mean=1e9,
                     threshold_q90=1e9,
@@ -99,7 +105,7 @@ class SurrogateTrainingTests(unittest.TestCase):
             self.assertTrue(Path(result.report_path).exists())
             self.assertTrue(Path(result.config_path).exists())
             self.assertTrue(Path(result.progress_path).exists())
-            self.assertEqual(result.dataset_examples, 4)
+            self.assertEqual(result.dataset_examples, 20)
             self.assertTrue(result.quality.ranking_evaluated)
             self.assertEqual(result.quality.probe_patches_evaluated, 1)
             self.assertEqual(result.quality.probe_candidates_per_patch, 5)
@@ -122,8 +128,8 @@ class SurrogateTrainingTests(unittest.TestCase):
 
         self.assertTrue(diagnosis["failures"]["mean_delta_e00"])
         self.assertTrue(diagnosis["failures"]["q90_delta_e00"])
-        self.assertIn("increase_hard_pixel_tail_weight", diagnosis["recommended_actions"])
-        self.assertIn("keep_teacher_proxy_targets_and_expand_candidate_probe", diagnosis["recommended_actions"])
+        self.assertIn("fix_teacher_schema_normalization_or_data", diagnosis["recommended_actions"])
+        self.assertIn("relax_margin_tied_ranking_gate", diagnosis["recommended_actions"])
 
     def test_quality_gate_uses_probe_metrics_and_respects_thresholds(self) -> None:
         import torch

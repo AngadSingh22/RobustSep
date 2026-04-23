@@ -181,19 +181,27 @@ gradient descent, the relative weights of the objective terms, and the exact PPP
 
 CMYKOGV context window with a designated scored center 16 by 16 region, + PPP, structure
 token, intent weights, intent raster, and a drift instance.
-**Stage 1** - _Teacher labels from ICC_ - For each sampled example, compute two ICC teacher
-outputs for the center region in Lab: one with no drift and one with exactly one sampled drift.
-Drift means applying PPP-defined ink-strength multipliers and monotone tone-curve
-perturbations to the CMYKOGV context, clipped to 0 to 1, before rendering through ICC.
+Until measured seven-channel press characterization exists, the surrogate is trained as a local
+appearance-delta model rather than a global renderer. The model output is
+\(\Delta Lab\), and the rendered prediction used for scoring is \(Lab_\mathrm{ref}+\Delta Lab\).
+This is necessary because the current ICC/proxy teacher is anchor-calibrated: it predicts local
+appearance changes around a known reference Lab, not absolute press Lab from CMYKOGV alone.
+**Stage 1** - _Teacher labels from ICC/proxy_ - For each sampled example, store separate
+`lab_ref_center`, `teacher_lab_nominal`, and `teacher_lab_drifted` arrays. Nominal uses identity
+drift; drifted applies exactly one PPP-defined ink-strength/TRC perturbation before rendering.
+The v2 shard schema is `surrogate-shards-v2`; earlier v1 surrogate shards are structurally
+readable but semantically obsolete for training or hybrid target generation.
 **Stage 2** - _Conditioning and FiLM_ - Feed PPP embedding, structure embedding, intent
 embedding, lambda, and a drift embedding into FiLM heads that modulate surrogate convolution
 
 
 blocks 1 through 7, using the same “Conv then GroupNorm then FiLM then activation” rule used
 in the proposer.
-**Stage 3** - _Loss_ - Train the surrogate to match the ICC teacher Lab output on the center region
-using Smooth L1 (Huber) loss, averaged over pixels and Lab channels, for both the nominal and
-drifted versions of each example.
+**Stage 3** - _Loss_ - Train the surrogate to match local teacher deltas:
+\(\Delta Lab_\mathrm{nominal}=teacher\_lab\_nominal-lab\_ref\_center\) and
+\(\Delta Lab_\mathrm{drifted}=teacher\_lab\_drifted-lab\_ref\_center\). Use Smooth L1
+(Huber) loss, averaged over pixels and Lab channels, with symmetric nominal and drifted
+supervision.
 **Stage 4** - _Determinism_ - All sampling is deterministic via the seed policy, sampling of patches
 and contexts, sampling of the single drift instance per example, and any shuffling is seeded and
 logged.
@@ -201,9 +209,11 @@ logged.
 a tougher deterministic candidate probe protocol: per patch, generate 5 candidates at lambda
 values 0.0, 0.3, 0.6, 0.9, 1.0 using deterministic seeds. Score each candidate under a fixed drift
 bank of 32 drift samples that is precomputed once per PPP base family using a frozen seed.
-Compute four metrics against ICC teacher: mean DeltaE00, 0.90-quantile DeltaE00, Spearman
-rank correlation of candidate ordering, and top-1 agreement. The gate passes only if all four
-metrics beat PPP-stored thresholds for that base family.
+The surrogate training distribution must include the same lambda candidate family, OGV
+perturbations, projected candidates, neons, neutrals, darks, and smooth ramps used by the gate.
+Compute mean DeltaE00, 0.90-quantile DeltaE00, Spearman rank correlation, top-1 agreement,
+and regret \(Risk_\mathrm{teacher}(argmin_\mathrm{surrogate})-\min Risk_\mathrm{teacher}\).
+The gate passes only if all accuracy, ranking, and regret metrics beat PPP-stored thresholds.
 
 
 ## Appendix 1 - Glossary
@@ -364,7 +374,7 @@ Block 4: 3 by 3 conv, 96 channels, stride 1, dilation 4, group norm, FiLM, SiLU.
 Block 5: 3 by 3 conv, 96 channels, stride 1, dilation 4, group norm, FiLM, SiLU.
 Block 6: 3 by 3 conv, 64 channels, stride 1, dilation 1, group norm, FiLM, SiLU.
 Block 7: 3 by 3 conv, 32 channels, stride 1, dilation 1, group norm, FiLM, SiLU.
-Head: 1 by 1 conv to 3 channels (Lab-like), linear output.
+Head: 1 by 1 conv to 3 channels (local \(\Delta Lab\)), linear output.
 **FiLM placement** : apply FiLM after group norm and before SiLU in Blocks 1 through 7.
 **FiLM conditioning inputs** : PPP embedding plus structure embedding plus intent embedding
 plus lambda, and also the per-drift parameters for that evaluation (because the spec treats drift as
@@ -451,5 +461,4 @@ means the tone curve never inverts ordering). Because drift is treated as an exp
 surrogate, the surrogate FiLM heads take a conditional vector on the surrogate which is a
 concatenation of conditional vector (general) and drift parameters With the defaults above, the
 dimensions come to be a total of 289 + 56 = 345.
-
 

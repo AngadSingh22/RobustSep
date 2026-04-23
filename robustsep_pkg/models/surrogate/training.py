@@ -38,7 +38,7 @@ class SurrogateTrainingConfig:
 
 @dataclass(frozen=True)
 class SurrogateLossConfig:
-    target_mode: str = "teacher_proxy"
+    target_mode: str = "teacher_delta"
     hard_pixel_weight: float = 0.0
     hard_pixel_quantile: float = 0.90
 
@@ -49,6 +49,8 @@ class SurrogateQualityGateThresholds:
     threshold_q90: float = 5.0
     threshold_spearman: float = 0.80
     threshold_top1: float = 0.80
+    threshold_mean_regret: float = 0.25
+    threshold_q90_regret: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -62,6 +64,10 @@ class SurrogateQualityMetrics:
     probe_candidates_per_patch: int
     probe_drifts_per_candidate: int
     passed: bool
+    mean_regret_delta_e00: float = 0.0
+    q90_regret_delta_e00: float = 0.0
+    mean_teacher_margin_delta_e00: float = 0.0
+    q90_teacher_margin_delta_e00: float = 0.0
 
     def to_dict(self) -> dict[str, float | int | bool]:
         return asdict(self)
@@ -163,9 +169,7 @@ def train_surrogate(
             shuffle_within_shard=True,
         ):
             optimizer.zero_grad(set_to_none=True)
-            pred = _forward_batch(model, batch, device)
-            target = _target_batch(batch, device, loss_config)
-            loss = _surrogate_loss(pred, target, loss_config)
+            loss = _loss_for_batch(model, batch, device, loss_config)
             loss.backward()
             optimizer.step()
             loss_value = float(loss.detach().cpu())
@@ -256,14 +260,17 @@ def diagnose_surrogate_quality(
         "q90_delta_e00": quality.q90_delta_e00 > thresholds.threshold_q90,
         "spearman": quality.spearman < thresholds.threshold_spearman,
         "top1_agreement": quality.top1_agreement < thresholds.threshold_top1,
+        "mean_regret_delta_e00": quality.mean_regret_delta_e00 > thresholds.threshold_mean_regret,
+        "q90_regret_delta_e00": quality.q90_regret_delta_e00 > thresholds.threshold_q90_regret,
     }
     actions: list[str] = []
-    if failures["mean_delta_e00"]:
-        actions.append("continue_teacher_proxy_regression")
-    if failures["q90_delta_e00"]:
-        actions.append("increase_hard_pixel_tail_weight")
+    if failures["mean_delta_e00"] or failures["q90_delta_e00"]:
+        actions.append("fix_teacher_schema_normalization_or_data")
     if failures["spearman"] or failures["top1_agreement"]:
-        actions.append("keep_teacher_proxy_targets_and_expand_candidate_probe")
+        if not failures["mean_regret_delta_e00"] and not failures["q90_regret_delta_e00"]:
+            actions.append("relax_margin_tied_ranking_gate")
+        else:
+            actions.append("add_candidate_distribution_training_and_rank_loss")
     return {
         "passed": quality.passed,
         "failures": failures,
@@ -297,12 +304,18 @@ def evaluate_surrogate_quality(
         probe_patches_evaluated=probe.patches_evaluated,
         probe_candidates_per_patch=probe.candidates_per_patch,
         probe_drifts_per_candidate=probe.drifts_per_candidate,
+        mean_regret_delta_e00=probe.mean_regret_delta_e00,
+        q90_regret_delta_e00=probe.q90_regret_delta_e00,
+        mean_teacher_margin_delta_e00=probe.mean_teacher_margin_delta_e00,
+        q90_teacher_margin_delta_e00=probe.q90_teacher_margin_delta_e00,
         passed=(
             mean <= thresholds.threshold_mean
             and q90 <= thresholds.threshold_q90
             and probe.ranking_evaluated
             and probe.spearman >= thresholds.threshold_spearman
             and probe.top1_agreement >= thresholds.threshold_top1
+            and probe.mean_regret_delta_e00 <= thresholds.threshold_mean_regret
+            and probe.q90_regret_delta_e00 <= thresholds.threshold_q90_regret
         ),
     )
     return metrics
@@ -319,19 +332,57 @@ def _evaluate_delta_e_fallback(
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
     errors: list[np.ndarray] = []
     for batch in loader:
-        pred = _forward_batch(model, batch, torch.device(device)).detach().cpu().permute(0, 2, 3, 1).numpy()
-        target = batch["lab_center"].numpy()
+        pred_raw = _forward_batch(model, batch, torch.device(device)).detach().cpu().permute(0, 2, 3, 1).numpy()
+        if _batch_schema_version(batch) >= 2:
+            pred = pred_raw + batch["lab_ref_center"].numpy()
+            target = batch["teacher_lab_drifted"].numpy()
+        else:
+            pred = pred_raw
+            target = batch["lab_center"].numpy()
         errors.append(delta_e_00(pred, target).reshape(-1))
     flat = np.concatenate(errors, axis=0) if errors else np.zeros((0,), dtype=np.float32)
     return (float(np.mean(flat)) if flat.size else 0.0, finite_quantile(flat, 0.90) if flat.size else 0.0)
 
 
 def _target_batch(batch: dict[str, Any], device: torch.device | str, loss_config: SurrogateLossConfig) -> torch.Tensor:
+    if loss_config.target_mode == "teacher_delta":
+        return _lab_delta_target_batch(batch, "teacher_lab_drifted", device)
     if loss_config.target_mode == "lab_anchor":
         return batch["lab_center"].to(device, non_blocking=True).permute(0, 3, 1, 2).float()
     if loss_config.target_mode != "teacher_proxy":
         raise ValueError(f"unknown surrogate target_mode: {loss_config.target_mode}")
     return _teacher_proxy_target_batch(batch, device)
+
+
+def _loss_for_batch(
+    model: ForwardSurrogateCNN,
+    batch: dict[str, Any],
+    device: torch.device | str,
+    loss_config: SurrogateLossConfig,
+) -> torch.Tensor:
+    if loss_config.target_mode != "teacher_delta":
+        pred = _forward_batch(model, batch, device)
+        target = _target_batch(batch, device, loss_config)
+        return _surrogate_loss(pred, target, loss_config)
+
+    pred_drifted = _forward_batch(model, batch, device)
+    target_drifted = _lab_delta_target_batch(batch, "teacher_lab_drifted", device)
+    drifted_loss = _surrogate_loss(pred_drifted, target_drifted, loss_config)
+
+    if "teacher_lab_nominal" not in batch:
+        return drifted_loss
+    nominal_batch = dict(batch)
+    nominal_batch["drift_vector"] = _identity_drift_vector_batch(batch)
+    pred_nominal = _forward_batch(model, nominal_batch, device)
+    target_nominal = _lab_delta_target_batch(batch, "teacher_lab_nominal", device)
+    nominal_loss = _surrogate_loss(pred_nominal, target_nominal, loss_config)
+    return 0.5 * (drifted_loss + nominal_loss)
+
+
+def _lab_delta_target_batch(batch: dict[str, Any], target_key: str, device: torch.device | str) -> torch.Tensor:
+    ref = batch["lab_ref_center"].to(device, non_blocking=True).float()
+    target = batch[target_key].to(device, non_blocking=True).float()
+    return (target - ref).permute(0, 3, 1, 2).float()
 
 
 def _teacher_proxy_target_batch(batch: dict[str, Any], device: torch.device | str) -> torch.Tensor:
@@ -375,6 +426,22 @@ def _forward_batch(model: ForwardSurrogateCNN, batch: dict[str, Any], device: to
         lambda_value=batch["lambda_value"].to(device),
         drift_vector=batch["drift_vector"].to(device),
     )
+
+
+def _identity_drift_vector_batch(batch: dict[str, Any]) -> torch.Tensor:
+    drift_vector = batch["drift_vector"]
+    size = int(drift_vector.shape[0])
+    multipliers = torch.ones((size, 7), dtype=drift_vector.dtype, device=drift_vector.device)
+    trc_x = batch["drift_trc_x"].to(device=drift_vector.device, dtype=drift_vector.dtype)
+    interiors = trc_x[:, 1:-1].reshape(size, 1, -1).repeat(1, 7, 1).reshape(size, -1)
+    return torch.cat([multipliers, interiors], dim=1)
+
+
+def _batch_schema_version(batch: dict[str, Any]) -> int:
+    version = batch.get("schema_version", 1)
+    if isinstance(version, torch.Tensor):
+        return int(version.flatten()[0].item())
+    return int(version)
 
 
 def _resolve_device(device: str) -> torch.device:

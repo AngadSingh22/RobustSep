@@ -15,7 +15,7 @@
 
 \setstretch{1.1}
 
-\title{RobustSep: A Stochastic Candidate-Generation Architecture for Robust, Drift-Aware Color Separation in Packaging}
+\title{RobustSep: A Stochastic Candidate-Generation Architecture for Robust, Drift-Aware Color Separation}
 \author{
   Shreeya Srivastava$^{1,\dagger}$ \and 
   Angad Singh Ahuja$^{1,\dagger}$ \and 
@@ -86,13 +86,6 @@ The collective progression from Rodriguez \cite{rodriguez} to ColorNet \cite{bo}
 
 \section{Methodology}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{../figures/robustsep_system_manifold.png}
-\caption{End-to-end RobustSep system manifold. RGB patches and PPP constraints condition stochastic CMYKOGV candidate generation; candidates are projected into the feasible set $K(\mathrm{PPP})$, evaluated under deterministic drift samples, and selected by tail-risk before emitting the final separation and audit report.}
-\label{fig:system_manifold}
-\end{figure}
-
 \subsection{Problem Formulation}
 
 RGB-to-CMYK color separation is an underdetermined inverse problem meaning that multiple ink configurations can produce perceptually equivalent appearances for a given RGB input. Rather than committing to a single deterministic mapping, we pose separation as a constrained optimization problem that explicitly accounts for printability and process variability.
@@ -125,6 +118,15 @@ The resulting optimization problem can be expressed as
 y_u^* = \arg\min_{y_u \in K(\mathrm{PPP})} R_{0.90},
 \]
 where $K(\mathrm{PPP})$ denotes the set of feasible ink configurations and $R_{0.90}$ captures worst-case perceptual error under PPP-conditioned process drift. We denote by $\Pi_K$ the deterministic projection operator that maps any candidate patch back into this feasible set.
+
+Figure~\ref{fig:system_manifold} summarizes the operator-level pipeline before we detail PPP conditioning, stochastic proposal, feasibility projection, and drift-risk selection.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../figures/robustsep_system_manifold.png}
+\caption{RobustSep operator-level pipeline.}
+\label{fig:system_manifold}
+\end{figure}
 
 \subsection{Press Prior Package (PPP)}
 
@@ -165,6 +167,12 @@ is drawn and passed to the decoder. At inference, the encoder is unused; the dec
 Y_k = D_{\theta}(z, x_u, c_u) \in [0,1]^{7\times 16\times 16}.
 \]
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../figures/robustsep_proposer_manifold.png}
+\caption*{\textbf{Conditioned stochastic proposal mechanism in RobustSep.} For a fixed RGB patch $x_u$ and conditioning vector $c_u$, the decoder $D_{\theta}$ maps latent samples $z \sim \mathcal{N}(0,I)$, together with $\lambda$, to a family of plausible CMYKOGV separations. Distinct latent samples yield alternative candidate separations $Y_k$, while $\lambda$ controls a structured axis of proposal variation prior to deterministic refinement and feasibility projection.}
+\end{figure}
+
 The encoder comprises five convolutional blocks E0--E4. E0 is a plain Conv$\rightarrow$GroupNorm$\rightarrow$SiLU block with no conditioning. E1 and E3 use strided convolutions (stride 2) to progressively reduce spatial resolution from $16\times 16$ to $4\times 4$; E2 and E4 are stride-1 refinement blocks. All of E1--E4 follow the pattern Conv$\rightarrow$GroupNorm$\rightarrow$FiLM$\rightarrow$SiLU. Global average pooling at $4\times 4$ produces a compact feature vector, projected by two linear heads to the latent mean $\mu$ and log-variance $\log \sigma^2$. The decoder D0--D5 reverses the hierarchy: D0 linearly projects $z$ to a $96\times 4\times 4$ tensor (no FiLM); D1--D5 are FiLM-conditioned Conv$\rightarrow$GroupNorm$\rightarrow$FiLM$\rightarrow$SiLU blocks with bilinear $2\times$ upsampling at D2 and D4, restoring $16\times 16$ resolution. A final $1\times 1$ sigmoid head produces the 7-channel output. FiLM scale is applied as $1 + \gamma_i$ to maintain near-identity initialization stability. Each FiLM-enabled block carries its own two-layer MLP head (Linear$\rightarrow$SiLU$\rightarrow$Linear) mapping $c_u$ to per-channel scale and shift vectors; heads are not shared across blocks.
 
 The proposer is queried three times per patch, once per inference $\lambda$ value $\{0.1, 0.5, 0.9\}$, each with a distinct deterministic seed. A hinge penalty during training enforces that mean OGV ink usage is non-decreasing across these three $\lambda$ levels, so expanded-gamut ink usage scales predictably with the operator's intent. Separately, surrogate quality gates use a denser diagnostic probe schedule $\{0.0,0.3,0.6,0.9,1.0\}$ to evaluate candidate-ranking behavior; this probe schedule is not the default inference proposal schedule.
@@ -203,22 +211,22 @@ L^{\text{ICC}}_{\text{app}} =
 \]
 where $\hat{A} = T_{\text{ICC}}(\hat{Y})$ and $A^* = T_{\text{ICC}}(Y^*)$ are the ICC-rendered Lab appearances of the predicted and target patches, respectively, under Relative Colorimetric intent with Black Point Compensation as defined in ICC color-management workflows \cite{icc}. The weight $\alpha_{\text{app}} \ll 1$ keeps this term a regularizer rather than a primary signal.
 
-The forward surrogate is a lightweight Micro-CNN whose purpose is not artistic fidelity but computationally efficient, differentiable approximation of ICC/proxy print rendering for candidate ranking and robustness gating. It takes a $32\times 32$ CMYKOGV context window as input (providing spatial neighborhood context for halftone ink interactions and overprint effects), but is scored only on the inner $16\times 16$ region. It comprises eight convolutional blocks with channel progression $32 \rightarrow 32 \rightarrow 64 \rightarrow 64 \rightarrow 96 \rightarrow 96 \rightarrow 64 \rightarrow 32$. Block 0 is plain Conv$\rightarrow$GroupNorm$\rightarrow$SiLU with no FiLM; Blocks 1--7 follow Conv$\rightarrow$GroupNorm$\rightarrow$FiLM$\rightarrow$SiLU. Dilated convolutions (dilation rates 1, 2, 2, 4, 4, 1, 1 for Blocks 1--7) enlarge the effective receptive field without reducing spatial resolution. A $1\times 1$ linear head outputs the three-channel $(L,a,b)$ prediction.
+The forward surrogate is a lightweight Micro-CNN whose purpose is not artistic fidelity but computationally efficient, differentiable approximation of local ICC/proxy print-response changes for candidate ranking and robustness gating. Until measured seven-channel press characterization is available, the surrogate is treated as a local appearance-delta model rather than a global CMYKOGV-to-Lab renderer: it predicts $\Delta Lab$ around a stored reference $A^*$, and candidate appearance is reconstructed as $A^*+\widehat{\Delta Lab}$. This distinction is important because the current ICC/proxy teacher is anchor-calibrated rather than a measured absolute press model. The surrogate takes a $32\times 32$ CMYKOGV context window as input (providing spatial neighborhood context for halftone ink interactions and overprint effects), but is scored only on the inner $16\times 16$ region. It comprises eight convolutional blocks with channel progression $32 \rightarrow 32 \rightarrow 64 \rightarrow 64 \rightarrow 96 \rightarrow 96 \rightarrow 64 \rightarrow 32$. Block 0 is plain Conv$\rightarrow$GroupNorm$\rightarrow$SiLU with no FiLM; Blocks 1--7 follow Conv$\rightarrow$GroupNorm$\rightarrow$FiLM$\rightarrow$SiLU. Dilated convolutions (dilation rates 1, 2, 2, 4, 4, 1, 1 for Blocks 1--7) enlarge the effective receptive field without reducing spatial resolution. A $1\times 1$ linear head outputs the three-channel $\Delta Lab$ prediction.
 
 To ensure that this surrogate remains faithful under both nominal and perturbed conditions, it is trained with symmetric supervision across drift states.
 
 \paragraph{Surrogate Loss.}
 
-The surrogate is trained under ICC/proxy teacher supervision rather than measured press Lab supervision. For each training example, two teacher targets are generated: a nominal target (no drift) and a drifted target (one PPP-sampled drift instance applied before ICC/proxy rendering). Both are supervised symmetrically using Huber loss with $\delta = 1.0$ in Lab space:
+The surrogate is trained under ICC/proxy teacher supervision rather than measured press Lab supervision. For each training example, the v2 shard schema stores a clean reference $A^*$, a nominal teacher target $L^{(n)}$, and a drifted teacher target $L^{(d)}$. The supervised targets are local deltas $\Delta L^{(n)}=L^{(n)}-A^*$ and $\Delta L^{(d)}=L^{(d)}-A^*$, not absolute Lab values. Both are supervised symmetrically using Huber loss with $\delta = 1.0$:
 \[
 L_{\text{nominal}} =
 \frac{1}{HWC}\sum_{i,j,c}
-\operatorname{Huber}_{\delta}\!\bigl(\hat{L}^{(n)}_{i,j,c} - L^{(n)}_{i,j,c}\bigr),
+\operatorname{Huber}_{\delta}\!\bigl(\widehat{\Delta L}^{(n)}_{i,j,c} - \Delta L^{(n)}_{i,j,c}\bigr),
 \]
 \[
 L_{\text{drift}} =
 \frac{1}{HWC}\sum_{i,j,c}
-\operatorname{Huber}_{\delta}\!\bigl(\hat{L}^{(d)}_{i,j,c} - L^{(d)}_{i,j,c}\bigr),
+\operatorname{Huber}_{\delta}\!\bigl(\widehat{\Delta L}^{(d)}_{i,j,c} - \Delta L^{(d)}_{i,j,c}\bigr),
 \]
 \[
 L_{\text{surrogate}} = L_{\text{nominal}} + L_{\text{drift}}.
@@ -249,9 +257,9 @@ For each feasible candidate $\tilde{Y}_k$, $N = 32$ drift instances $\{\pi_i\}_{
 \[
 \tilde{Y}_{k,i} = \operatorname{clip}(\pi_i \odot \tilde{Y}_k, 0, 1).
 \]
-The surrogate predicts CIELab appearance
+The surrogate predicts local CIELab appearance deltas, which are added to the reference appearance for scoring:
 \[
-\widehat{LAB}_{k,i} = F_{\theta}(\tilde{Y}_{k,i}, c_u)
+\widehat{LAB}_{k,i} = A_u^* + F_{\theta}(\tilde{Y}_{k,i}, c_u)
 \]
 for each drifted candidate. Perceptual error is aggregated using per-patch intent weights:
 \[
@@ -269,6 +277,8 @@ For a finite set $S$, the empirical quantile is defined deterministically as
 Q_q(S) = \operatorname{sort}(S)_{\lceil q|S| \rceil - 1},
 \]
 using zero-based indexing after sorting in ascending order.
+
+Figure~\ref{fig:drift_risk_selection} visualizes the candidate-wise drift evaluation and quantile-based selection rule.
 
 \begin{figure}[t]
 \centering
@@ -297,7 +307,7 @@ Blending weights are tapered smoothly toward patch boundaries (suppressing block
 \subsection{Datasets and Splits}
 
 \begin{sloppypar}
-We evaluate the proposed RobustSep pipeline on staged patch manifests spanning three source families: RobustSep raster/vector patches, DocLayNet layout patches, and SKU-110K product/packaging imagery. The current v1.1 split manifests contain 460,969 train patches, 57,344 validation patches, and 24,576 test patches; surrogate training shards contain two drift-conditioned examples per patch, yielding 921,938 train, 114,688 validation, and 49,152 test examples. Corrupt PNG inputs are excluded during staging, including \path{data/png_full/png/frame-5268144_1280.png} and \path{data/png_full/png/frame-8066465_1280.png}. Current shards use the \texttt{ones} alpha policy because transparent regions were filtered before shard generation.
+We evaluate the proposed RobustSep pipeline on staged patch manifests spanning three source families: RobustSep raster/vector patches, DocLayNet layout patches, and SKU-110K product/packaging imagery. The current v1.1 split manifests contain 460,969 train patches, 57,344 validation patches, and 24,576 test patches; surrogate training shards contain two drift-conditioned examples per patch, yielding 921,938 train, 114,688 validation, and 49,152 test examples. Current shards use the \texttt{ones} alpha policy because transparent regions were filtered before shard generation.
 \end{sloppypar}
 
 \begin{table}[htbp]
@@ -333,7 +343,7 @@ We adopt a comprehensive set of metrics inspired by prior works such as Chen et 
 \begin{itemize}
     \item \textbf{Drift-Robust Color Fidelity:} Primary metrics are mean, median, 75th-, 90th-, and 95th-percentile CIE $\Delta E_{00}$ under PPP-sampled drift, together with the percentage of patches exceeding operational $\Delta E_{00}$ thresholds.
     \item \textbf{Print Feasibility:} Quantified via TAC violation rate, per-channel cap violations, OGV-cap violations, neutral/dark OGV violations, pair-cap violations, ink consumption per channel, Neutral Gray Balance stability, and K-channel distribution statistics (mean, std).
-    \item \textbf{Decision Quality and Runtime:} Reported using surrogate candidate-ranking Spearman correlation, top-1 agreement with the teacher/proxy ranking, escalation rate, fallback rate, and runtime per patch or megapixel.
+    \item \textbf{Decision Quality and Runtime:} Reported using surrogate candidate-ranking Spearman correlation, top-1 agreement with the teacher/proxy ranking, teacher-risk regret for the surrogate-selected candidate, escalation rate, fallback rate, and runtime per patch or megapixel.
 \end{itemize}
 
 \subsection{Secondary Metrics}
@@ -348,7 +358,7 @@ The quantitative performance of RobustSep compared to standard baseline approach
 \centering
 \caption{Quantitative Performance Comparison}
 \label{tab:quant_results}
-\begin{tabular}{ll}
+\begin{tabular}{p{0.34\textwidth}p{0.56\textwidth}}
 \toprule
 Metric & Reported statistic \\
 \midrule
@@ -361,12 +371,13 @@ MSE / PSNR / SSIM & Secondary Lab/luminance similarity diagnostics \\
 Edge Error & Percent edge disagreement \\
 TAC violation rate & Percent pixels or patches exceeding $TAC_{\max}$ \\
 Channel-cap violations & Count by CMYKOGV channel \\
-OGV/neutral/pair-cap violations & Count by feasibility constraint type \\
+OGV/neutral/pair violations & Count by feasibility constraint type \\
 Ink Usage & Mean channel coverage by ink \\
 Gray Balance & Neutral/dark chroma deviation \\
 K Mean / K Std & Black-channel distribution statistics \\
 Spearman candidate ranking & Candidate-risk ordering correlation \\
 Top-1 candidate agreement & Agreement with teacher/proxy best candidate \\
+Teacher-risk regret & Risk gap between surrogate-selected and teacher-best candidate \\
 Escalation / fallback rate & Percent patches requiring escalation or fallback \\
 Runtime per patch & Mean wall-clock processing time \\
 \bottomrule

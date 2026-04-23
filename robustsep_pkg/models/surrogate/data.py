@@ -28,6 +28,10 @@ class SurrogateTrainingDataset(Dataset):
         self.manifest_path = Path(manifest_path)
         self.manifest = read_json(self.manifest_path)
         self.ppp = PPP.from_dict(self.manifest["ppp"])
+        self.manifest_version = str(self.manifest.get("manifest_version", ""))
+        schema = self.manifest.get("schema", {}) if isinstance(self.manifest.get("schema", {}), dict) else {}
+        self.schema_version = int(schema.get("version", 1))
+        self.output_mode = str(schema.get("output_mode", "lab"))
         self.model_config = model_config
         self._ppp_numeric, self._ppp_mask, self._base_family_index = ppp_condition_arrays(self.ppp, model_config)
         self._shards = list(self.manifest["shards"])
@@ -50,6 +54,10 @@ class SurrogateTrainingDataset(Dataset):
         shard_idx, local_idx = self._index[index]
         arrays, records = self._load_shard(shard_idx)
         record = records[local_idx]
+        lab_ref = _array_at(arrays, "lab_ref_center", "lab_center", local_idx)
+        teacher_nominal = _array_at(arrays, "teacher_lab_nominal", "lab_center", local_idx)
+        teacher_drifted = _array_at(arrays, "teacher_lab_drifted", "lab_center", local_idx)
+        candidate_type_index = int(arrays.get("candidate_type_index", np.zeros((arrays["cmykogv_context"].shape[0],), dtype=np.int64))[local_idx])
         drift_vector = np.concatenate(
             [
                 arrays["drift_multipliers"][local_idx].reshape(-1),
@@ -59,9 +67,13 @@ class SurrogateTrainingDataset(Dataset):
         ).astype(np.float32)
         return {
             "cmykogv_context": torch.from_numpy(arrays["cmykogv_context"][local_idx].astype(np.float32)),
-            "lab_center": torch.from_numpy(arrays["lab_center"][local_idx].astype(np.float32)),
+            "lab_ref_center": torch.from_numpy(lab_ref.astype(np.float32)),
+            "teacher_lab_nominal": torch.from_numpy(teacher_nominal.astype(np.float32)),
+            "teacher_lab_drifted": torch.from_numpy(teacher_drifted.astype(np.float32)),
+            "lab_center": torch.from_numpy(lab_ref.astype(np.float32)),
             "intent_raster": torch.from_numpy(arrays["intent_raster"][local_idx].astype(np.float32)),
             "intent_weights": torch.from_numpy(arrays["intent_weights"][local_idx].astype(np.float32)),
+            "candidate_type_index": torch.tensor(candidate_type_index, dtype=torch.long),
             "lambda_value": torch.tensor(float(arrays["lambda_value"][local_idx]), dtype=torch.float32),
             "drift_multipliers": torch.from_numpy(arrays["drift_multipliers"][local_idx].astype(np.float32)),
             "drift_trc_x": torch.from_numpy(arrays["drift_trc_x"][local_idx].astype(np.float32)),
@@ -74,6 +86,7 @@ class SurrogateTrainingDataset(Dataset):
             "source_id": record.get("source_id", ""),
             "target_hash": record.get("target_hash", ""),
             "drift_hash": record.get("drift_hash", ""),
+            "schema_version": self.schema_version,
         }
 
     def _load_shard(self, shard_idx: int) -> tuple[dict[str, np.ndarray], list[dict[str, Any]]]:
@@ -114,6 +127,8 @@ def iter_surrogate_shard_batches(
 
     manifest = read_json(Path(manifest_path))
     ppp = PPP.from_dict(manifest["ppp"])
+    schema = manifest.get("schema", {}) if isinstance(manifest.get("schema", {}), dict) else {}
+    schema_version = int(schema.get("version", 1))
     ppp_numeric, ppp_mask, base_family_index = ppp_condition_arrays(ppp, model_config)
     shards = list(manifest["shards"])
     rng = np.random.default_rng(int(seed) + 1000003 * int(epoch))
@@ -144,6 +159,7 @@ def iter_surrogate_shard_batches(
                 ppp_numeric=ppp_numeric,
                 ppp_mask=ppp_mask,
                 base_family_index=base_family_index,
+                schema_version=schema_version,
             )
 
 
@@ -155,8 +171,17 @@ def _batch_from_shard_arrays(
     ppp_numeric: np.ndarray,
     ppp_mask: np.ndarray,
     base_family_index: int,
+    schema_version: int = 1,
 ) -> dict[str, Any]:
     size = int(indices.size)
+    lab_ref = _array_take(arrays, "lab_ref_center", "lab_center", indices)
+    teacher_nominal = _array_take(arrays, "teacher_lab_nominal", "lab_center", indices)
+    teacher_drifted = _array_take(arrays, "teacher_lab_drifted", "lab_center", indices)
+    candidate_type_index = arrays.get("candidate_type_index")
+    if candidate_type_index is None:
+        candidate_type_index_values = np.zeros((size,), dtype=np.int64)
+    else:
+        candidate_type_index_values = candidate_type_index[indices].astype(np.int64)
     drift_vector = np.concatenate(
         [
             arrays["drift_multipliers"][indices].reshape(size, -1),
@@ -170,9 +195,13 @@ def _batch_from_shard_arrays(
     )
     return {
         "cmykogv_context": torch.from_numpy(arrays["cmykogv_context"][indices].astype(np.float32)),
-        "lab_center": torch.from_numpy(arrays["lab_center"][indices].astype(np.float32)),
+        "lab_ref_center": torch.from_numpy(lab_ref.astype(np.float32)),
+        "teacher_lab_nominal": torch.from_numpy(teacher_nominal.astype(np.float32)),
+        "teacher_lab_drifted": torch.from_numpy(teacher_drifted.astype(np.float32)),
+        "lab_center": torch.from_numpy(lab_ref.astype(np.float32)),
         "intent_raster": torch.from_numpy(arrays["intent_raster"][indices].astype(np.float32)),
         "intent_weights": torch.from_numpy(arrays["intent_weights"][indices].astype(np.float32)),
+        "candidate_type_index": torch.from_numpy(candidate_type_index_values),
         "lambda_value": torch.from_numpy(arrays["lambda_value"][indices].astype(np.float32)),
         "drift_multipliers": torch.from_numpy(arrays["drift_multipliers"][indices].astype(np.float32)),
         "drift_trc_x": torch.from_numpy(arrays["drift_trc_x"][indices].astype(np.float32)),
@@ -185,7 +214,18 @@ def _batch_from_shard_arrays(
         "source_id": [records[int(i)].get("source_id", "") for i in indices],
         "target_hash": [records[int(i)].get("target_hash", "") for i in indices],
         "drift_hash": [records[int(i)].get("drift_hash", "") for i in indices],
+        "schema_version": schema_version,
     }
+
+
+def _array_at(arrays: dict[str, np.ndarray], preferred: str, fallback: str, index: int) -> np.ndarray:
+    key = preferred if preferred in arrays else fallback
+    return arrays[key][index]
+
+
+def _array_take(arrays: dict[str, np.ndarray], preferred: str, fallback: str, indices: np.ndarray) -> np.ndarray:
+    key = preferred if preferred in arrays else fallback
+    return arrays[key][indices]
 
 
 def ppp_condition_arrays(ppp: PPP, model_config: SurrogateModelConfig = SurrogateModelConfig()) -> tuple[np.ndarray, np.ndarray, int]:

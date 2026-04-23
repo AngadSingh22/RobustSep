@@ -11,13 +11,17 @@ except ImportError as exc:  # pragma: no cover
     raise ImportError("Surrogate candidate probe requires PyTorch. Install torch to use this module.") from exc
 
 from robustsep_pkg.core.config import DriftConfig
-from robustsep_pkg.core.seeding import derive_seed
 from robustsep_pkg.eval.metrics import delta_e_00, finite_quantile
 from robustsep_pkg.models.conditioning.drift import DriftSample, apply_drift, sample_drift_bank
 from robustsep_pkg.models.conditioning.ppp import PPP
-from robustsep_pkg.models.refiner.solver import pi_k
 from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset
 from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN
+from robustsep_pkg.surrogate_data.candidates import (
+    LambdaCandidateConfig,
+    center_patch,
+    generate_lambda_candidate_contexts,
+    lab_to_ogv_signal,
+)
 from robustsep_pkg.targets.teacher import calibrated_cmykogv_lab
 
 
@@ -34,6 +38,7 @@ class CandidateProbeConfig:
     ogv_probe_scale: float = 0.10
     ink_noise_scale: float = 0.012
     drift_config: DriftConfig = field(default_factory=DriftConfig)
+    prediction_mode: str = "auto"
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,10 @@ class CandidateProbeMetrics:
     patches_evaluated: int
     candidates_per_patch: int
     drifts_per_candidate: int
+    mean_regret_delta_e00: float = 0.0
+    q90_regret_delta_e00: float = 0.0
+    mean_teacher_margin_delta_e00: float = 0.0
+    q90_teacher_margin_delta_e00: float = 0.0
 
     def to_dict(self) -> dict[str, float | int | bool]:
         return asdict(self)
@@ -80,6 +89,8 @@ def evaluate_candidate_probe(
 
     pixel_errors: list[np.ndarray] = []
     spearman_values: list[float] = []
+    regrets: list[float] = []
+    teacher_margins: list[float] = []
     top1_matches = 0
 
     for dataset_index in range(patch_count):
@@ -105,6 +116,8 @@ def evaluate_candidate_probe(
         )
         pixel_errors.append(probe["pixel_errors"])
         spearman_values.append(float(probe["spearman"]))
+        regrets.append(float(probe["regret"]))
+        teacher_margins.append(float(probe["teacher_margin"]))
         top1_matches += int(probe["top1_match"])
 
     if patch_count == 0:
@@ -113,6 +126,10 @@ def evaluate_candidate_probe(
             q90_delta_e00=0.0,
             spearman=0.0,
             top1_agreement=0.0,
+            mean_regret_delta_e00=0.0,
+            q90_regret_delta_e00=0.0,
+            mean_teacher_margin_delta_e00=0.0,
+            q90_teacher_margin_delta_e00=0.0,
             ranking_evaluated=False,
             patches_evaluated=0,
             candidates_per_patch=len(config.lambda_values),
@@ -125,6 +142,10 @@ def evaluate_candidate_probe(
         q90_delta_e00=finite_quantile(flat_errors, 0.90) if flat_errors.size else 0.0,
         spearman=float(np.mean(spearman_values)) if spearman_values else 0.0,
         top1_agreement=float(top1_matches / patch_count),
+        mean_regret_delta_e00=float(np.mean(regrets)) if regrets else 0.0,
+        q90_regret_delta_e00=finite_quantile(np.asarray(regrets, dtype=np.float32), 0.90) if regrets else 0.0,
+        mean_teacher_margin_delta_e00=float(np.mean(teacher_margins)) if teacher_margins else 0.0,
+        q90_teacher_margin_delta_e00=finite_quantile(np.asarray(teacher_margins, dtype=np.float32), 0.90) if teacher_margins else 0.0,
         ranking_evaluated=True,
         patches_evaluated=patch_count,
         candidates_per_patch=len(config.lambda_values),
@@ -141,33 +162,18 @@ def generate_lambda_probe_contexts(
     config: CandidateProbeConfig = CandidateProbeConfig(),
 ) -> tuple[np.ndarray, ...]:
     """Generate the five deterministic lambda candidates for one patch context."""
-    context = np.asarray(cmykogv_context, dtype=np.float32)
-    if context.shape != (32, 32, 7):
-        raise ValueError(f"expected cmykogv_context shape (32,32,7), got {context.shape}")
-    lab = np.asarray(lab_ref, dtype=np.float32)
-    if lab.shape != (16, 16, 3):
-        raise ValueError(f"expected lab_ref shape (16,16,3), got {lab.shape}")
-
-    center = _center_patch(context)
-    chroma_signal = _lab_to_ogv_signal(lab)
-    out: list[np.ndarray] = []
-    for candidate_index, lambda_value in enumerate(config.lambda_values):
-        lam = float(lambda_value)
-        seed = derive_seed(config.root_seed, source_id, ppp.hash, "surrogate_candidate_probe", "center", candidate_index)
-        rng = np.random.default_rng(seed)
-        y = center.copy()
-        if lam > 0.0:
-            noise = rng.random((16, 16, 3), dtype=np.float32)
-            ogv_delta = lam * config.ogv_probe_scale * (0.75 * chroma_signal + 0.25 * noise)
-            y[..., 4:7] += ogv_delta.astype(np.float32)
-            y[..., :3] *= np.float32(max(0.0, 1.0 - 0.035 * lam))
-            y += rng.normal(0.0, config.ink_noise_scale * lam, size=y.shape).astype(np.float32)
-        y = pi_k(y, ppp, lab_ref=lab)
-        candidate_context = context.copy()
-        start = (context.shape[0] - 16) // 2
-        candidate_context[start : start + 16, start : start + 16, :] = y
-        out.append(candidate_context.astype(np.float32))
-    return tuple(out)
+    return generate_lambda_candidate_contexts(
+        cmykogv_context,
+        lab_ref,
+        ppp,
+        source_id=source_id,
+        config=LambdaCandidateConfig(
+            lambda_values=tuple(config.lambda_values),
+            root_seed=config.root_seed,
+            ogv_probe_scale=config.ogv_probe_scale,
+            ink_noise_scale=config.ink_noise_scale,
+        ),
+    )
 
 
 def _evaluate_one_patch(
@@ -202,6 +208,8 @@ def _evaluate_one_patch(
         contexts,
         drift_vectors,
         lambda_values,
+        lab_ref,
+        prediction_mode=_resolve_prediction_mode(sample, config),
         device=device,
         batch_size=config.batch_size,
     )
@@ -223,10 +231,18 @@ def _evaluate_one_patch(
         [finite_quantile(np.asarray(values, dtype=np.float32), config.risk_q) for values in surrogate_risk_by_candidate],
         dtype=np.float32,
     )
+    teacher_order = np.argsort(teacher_risk, kind="mergesort")
+    surrogate_order = np.argsort(surrogate_risk, kind="mergesort")
+    teacher_best = int(teacher_order[0])
+    surrogate_best = int(surrogate_order[0])
+    teacher_margin = float(teacher_risk[teacher_order[1]] - teacher_risk[teacher_order[0]]) if teacher_order.size > 1 else 0.0
+    regret = float(max(0.0, teacher_risk[surrogate_best] - teacher_risk[teacher_best]))
     return {
         "pixel_errors": pixel_errors.astype(np.float32),
         "spearman": _spearman(teacher_risk, surrogate_risk),
-        "top1_match": int(np.argmin(teacher_risk) == np.argmin(surrogate_risk)),
+        "top1_match": int(teacher_best == surrogate_best),
+        "teacher_margin": teacher_margin,
+        "regret": regret,
     }
 
 
@@ -236,6 +252,8 @@ def _predict_probe_labs(
     contexts: Sequence[np.ndarray],
     drift_vectors: Sequence[np.ndarray],
     lambda_values: Sequence[float],
+    lab_ref: np.ndarray,
+    prediction_mode: str,
     *,
     device: torch.device,
     batch_size: int,
@@ -256,7 +274,10 @@ def _predict_probe_labs(
             lambda_value=torch.tensor(lambda_values[start:end], dtype=torch.float32, device=device),
             drift_vector=torch.from_numpy(np.stack(drift_vectors[start:end], axis=0)).to(device),
         )
-        outputs.append(pred.detach().cpu().permute(0, 2, 3, 1).numpy().astype(np.float32))
+        pred_np = pred.detach().cpu().permute(0, 2, 3, 1).numpy().astype(np.float32)
+        if prediction_mode == "local_delta_lab":
+            pred_np = pred_np + lab_ref[None, ...].astype(np.float32)
+        outputs.append(pred_np)
     return np.concatenate(outputs, axis=0)
 
 
@@ -288,18 +309,18 @@ def _sample_source_id(sample: dict[str, Any], dataset_index: int) -> str:
 
 
 def _center_patch(context: np.ndarray) -> np.ndarray:
-    start = (context.shape[0] - 16) // 2
-    return context[start : start + 16, start : start + 16, :]
+    return center_patch(context)
 
 
 def _lab_to_ogv_signal(lab: np.ndarray) -> np.ndarray:
-    a = np.clip(lab[..., 1] / 128.0, -1.0, 1.0)
-    b = np.clip(lab[..., 2] / 128.0, -1.0, 1.0)
-    signal = np.empty(lab.shape[:2] + (3,), dtype=np.float32)
-    signal[..., 0] = np.clip(0.5 * a + 0.5 * b, 0.0, 1.0)  # orange/warm
-    signal[..., 1] = np.clip(-a, 0.0, 1.0)  # green
-    signal[..., 2] = np.clip(0.5 * a - 0.5 * b, 0.0, 1.0)  # violet/magenta-blue
-    return signal
+    return lab_to_ogv_signal(lab)
+
+
+def _resolve_prediction_mode(sample: dict[str, Any], config: CandidateProbeConfig) -> str:
+    if config.prediction_mode != "auto":
+        return config.prediction_mode
+    schema_version = int(sample.get("schema_version", 1))
+    return "local_delta_lab" if schema_version >= 2 else "lab"
 
 
 def _drift_vector(drift: DriftSample) -> np.ndarray:

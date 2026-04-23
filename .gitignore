@@ -83,3 +83,7 @@ outputs/
 artifacts/
 tmp/
 temp/
+
+# Paper dependencies
+paper/acm_style/*
+!paper/acm_style/acm_paper/

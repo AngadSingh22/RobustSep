@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     train.add_argument("--seed", type=int, default=20260422)
     train.add_argument("--device", default="auto")
     train.add_argument("--initial-checkpoint", default=None)
-    train.add_argument("--loss-target-mode", default="teacher_proxy", choices=("teacher_proxy", "lab_anchor"))
+    train.add_argument("--loss-target-mode", default="teacher_delta", choices=("teacher_delta", "teacher_proxy", "lab_anchor"))
     train.add_argument("--hard-pixel-weight", type=float, default=0.0)
     train.add_argument("--hard-pixel-quantile", type=float, default=0.90)
     _add_gate_args(train)
@@ -104,6 +104,8 @@ def _add_gate_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--threshold-q90", type=float, default=5.0)
     parser.add_argument("--threshold-spearman", type=float, default=0.80)
     parser.add_argument("--threshold-top1", type=float, default=0.80)
+    parser.add_argument("--threshold-mean-regret", type=float, default=0.25)
+    parser.add_argument("--threshold-q90-regret", type=float, default=1.0)
     parser.add_argument("--probe-drift-samples", type=int, default=32)
     parser.add_argument("--probe-max-patches", type=int, default=None)
     parser.add_argument("--probe-batch-size", type=int, default=64)
@@ -326,6 +328,8 @@ def _thresholds_from_args(args: argparse.Namespace) -> Any:
         threshold_q90=args.threshold_q90,
         threshold_spearman=args.threshold_spearman,
         threshold_top1=args.threshold_top1,
+        threshold_mean_regret=args.threshold_mean_regret,
+        threshold_q90_regret=args.threshold_q90_regret,
     )
 
 

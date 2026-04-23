@@ -37,20 +37,28 @@ class SurrogateShardWriterTests(unittest.TestCase):
             rows = read_jsonl(shard0["jsonl"])
             with np.load(shard0["npz"]) as arrays:
                 context_shape = arrays["cmykogv_context"].shape
+                lab_ref_shape = arrays["lab_ref_center"].shape
+                nominal_shape = arrays["teacher_lab_nominal"].shape
+                drifted_shape = arrays["teacher_lab_drifted"].shape
                 lab_shape = arrays["lab_center"].shape
                 intent_shape = arrays["intent_raster"].shape
                 drift_shape = arrays["drift_multipliers"].shape
 
-        self.assertEqual(summary.total_examples, 3)
-        self.assertEqual(summary.num_shards, 2)
-        self.assertEqual(manifest["manifest_version"], "surrogate-shards-v1")
+        self.assertEqual(summary.total_examples, 15)
+        self.assertEqual(summary.num_shards, 8)
+        self.assertEqual(manifest["manifest_version"], "surrogate-shards-v2")
+        self.assertEqual(manifest["schema"]["output_mode"], "local_delta_lab")
         self.assertEqual(manifest["ppp_hash"], ppp.hash)
         self.assertEqual(context_shape, (2, 32, 32, 7))
+        self.assertEqual(lab_ref_shape, (2, 16, 16, 3))
+        self.assertEqual(nominal_shape, (2, 16, 16, 3))
+        self.assertEqual(drifted_shape, (2, 16, 16, 3))
         self.assertEqual(lab_shape, (2, 16, 16, 3))
         self.assertEqual(intent_shape, (2, 4, 4, 3))
         self.assertEqual(drift_shape, (2, 7))
         self.assertIn("target_hash", rows[0])
         self.assertIn("drift_hash", rows[0])
+        self.assertEqual(rows[0]["candidate_type"], "lambda_probe")
         self.assertEqual(rows[0]["structure_token"], "flat")
 
     def test_rejects_invalid_shard_size(self) -> None:

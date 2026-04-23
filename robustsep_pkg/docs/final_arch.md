@@ -665,23 +665,31 @@ already specified in the VAE document.
 
 5. ## **Forward Surrogate**
 
-The surrogate is the Micro-CNN defined in `vae_fs_pargb2cmyk.md`. It is an appearance-risk
-model, not a feasibility model:
+The surrogate is the Micro-CNN defined in `vae_fs_pargb2cmyk.md`. Under the current
+ICC/proxy teacher it is a local appearance-delta risk model, not a global press renderer and not
+a feasibility model:
 
 ```text
 F_theta: (32x32 CMYKOGV context, PPP, tau, intent, lambda, epsilon)
-         -> Lab_hat for the scored center 16x16 region
+         -> DeltaLab_hat for the scored center 16x16 region
 ```
 
-Drift is applied before the CNN:
+The scored Lab prediction is reconstructed around the stored reference:
 
 ```text
 y_drift = D_epsilon(y)
-Lab_hat = F_theta(y_drift, cond(PPP,tau,intent,lambda,epsilon))
+DeltaLab_hat = F_theta(y_drift, cond(PPP,tau,intent,lambda,epsilon))
+Lab_hat = Lab_ref_center + DeltaLab_hat
 ```
 
-Training uses Huber loss against ICC/Lab teacher labels for nominal and drifted examples, plus
-the fixed heldout quality gate:
+The required v2 shard schema stores `lab_ref_center`, `teacher_lab_nominal`,
+`teacher_lab_drifted`, `cmykogv_context`, `candidate_type`, `lambda_value`, drift parameters,
+`ppp_hash`, and source metadata. `surrogate-shards-v1` artifacts and checkpoints trained from
+them are semantically obsolete: they may be inspected for debugging, but must not unlock VAE
+training, hybrid target generation, or paper claims.
+
+Training uses Huber loss against local teacher deltas for nominal and drifted examples, plus the
+fixed heldout quality gate:
 
 ```text
 pass iff
@@ -689,6 +697,8 @@ pass iff
   q90_DeltaE00 <= threshold_q90
   Spearman >= threshold_spearman
   top1_agreement >= threshold_top1
+  mean_regret <= threshold_mean_regret
+  q90_regret <= threshold_q90_regret
 ```
 
 If the gate fails, hybrid target generation is disabled and any inference using the surrogate must

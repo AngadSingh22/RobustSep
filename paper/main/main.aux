@@ -25,47 +25,45 @@
 \citation{bo}
 \@writefile{toc}{\contentsline {section}{\numberline {3}Methodology}{4}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Problem Formulation}{4}{subsection.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces End-to-end RobustSep system manifold. RGB patches and PPP constraints condition stochastic CMYKOGV candidate generation; candidates are projected into the feasible set $K(\mathrm  {PPP})$, evaluated under deterministic drift samples, and selected by tail-risk before emitting the final separation and audit report.}}{5}{figure.caption.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Press Prior Package (PPP)}{5}{subsection.3.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces RobustSep operator-level pipeline.}}{6}{figure.caption.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:system_manifold}{{2}{5}{End-to-end RobustSep system manifold. RGB patches and PPP constraints condition stochastic CMYKOGV candidate generation; candidates are projected into the feasible set $K(\mathrm {PPP})$, evaluated under deterministic drift samples, and selected by tail-risk before emitting the final separation and audit report}{figure.caption.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Press Prior Package (PPP)}{6}{subsection.3.2}\protected@file@percent }
+\newlabel{fig:system_manifold}{{2}{6}{RobustSep operator-level pipeline}{figure.caption.1}{}}
 \citation{kingma}
 \citation{sohn}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces The Press Prior Package induces the feasible set $K(\mathrm  {PPP})$. Channel caps, TAC, OGV, pair-coupling, and neutral/dark constraints define a constrained envelope; $\Pi _K$ projects infeasible candidate separations back into this physically admissible region.}}{7}{figure.caption.2}\protected@file@percent }
 \newlabel{fig:ppp_feasibility}{{3}{7}{The Press Prior Package induces the feasible set $K(\mathrm {PPP})$. Channel caps, TAC, OGV, pair-coupling, and neutral/dark constraints define a constrained envelope; $\Pi _K$ projects infeasible candidate separations back into this physically admissible region}{figure.caption.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Proposer and Generation}{7}{subsection.3.3}\protected@file@percent }
 \citation{bo}
-\@writefile{toc}{\contentsline {paragraph}{Proposer Loss.}{8}{section*.3}\protected@file@percent }
 \citation{icc}
-\@writefile{toc}{\contentsline {paragraph}{Surrogate Loss.}{9}{section*.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Refinement and Assembly}{10}{subsection.3.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Drift-risk candidate selection. Each feasible CMYKOGV candidate is evaluated across deterministic PPP-conditioned drift samples; RobustSep selects the candidate with the lowest 90th-percentile $\Delta E_{00}$ risk rather than the lowest nominal or mean error.}}{11}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:drift_risk_selection}{{4}{11}{Drift-risk candidate selection. Each feasible CMYKOGV candidate is evaluated across deterministic PPP-conditioned drift samples; RobustSep selects the candidate with the lowest 90th-percentile $\Delta E_{00}$ risk rather than the lowest nominal or mean error}{figure.caption.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Evaluation}{12}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Datasets and Splits}{12}{subsection.4.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Evaluation Split Composition}}{12}{table.caption.6}\protected@file@percent }
-\newlabel{tab:dataset_splits}{{1}{12}{Evaluation Split Composition}{table.caption.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Baselines}{12}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Protocol}{12}{subsection.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Proposer Loss.}{9}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Surrogate Loss.}{10}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Refinement and Assembly}{11}{subsection.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Drift-risk candidate selection. Each feasible CMYKOGV candidate is evaluated across deterministic PPP-conditioned drift samples; RobustSep selects the candidate with the lowest 90th-percentile $\Delta E_{00}$ risk rather than the lowest nominal or mean error.}}{12}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:drift_risk_selection}{{4}{12}{Drift-risk candidate selection. Each feasible CMYKOGV candidate is evaluated across deterministic PPP-conditioned drift samples; RobustSep selects the candidate with the lowest 90th-percentile $\Delta E_{00}$ risk rather than the lowest nominal or mean error}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Evaluation}{13}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Datasets and Splits}{13}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Evaluation Split Composition}}{13}{table.caption.7}\protected@file@percent }
+\newlabel{tab:dataset_splits}{{1}{13}{Evaluation Split Composition}{table.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Baselines}{13}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Protocol}{13}{subsection.4.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Primary Metrics}{13}{subsection.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Secondary Metrics}{13}{subsection.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Quantitative Results}{13}{subsection.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Visual Results}{13}{subsection.4.7}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Qualitative Comparison of Separation Outcomes}}{13}{figure.caption.9}\protected@file@percent }
-\newlabel{fig:visual_comparison}{{5}{13}{Qualitative Comparison of Separation Outcomes}{figure.caption.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Distribution Analysis}{13}{subsection.4.8}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Quantitative Performance Comparison}}{14}{table.caption.7}\protected@file@percent }
-\newlabel{tab:quant_results}{{2}{14}{Quantitative Performance Comparison}{table.caption.7}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Percentile Analysis (Robustness)}}{14}{table.caption.8}\protected@file@percent }
-\newlabel{tab:percentile_robustness}{{3}{14}{Percentile Analysis (Robustness)}{table.caption.8}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces $\Delta E_{00}$ perceptual error distribution. The right tail characterizes worst-case behavior under PPP-sampled drift.}}{14}{figure.caption.10}\protected@file@percent }
-\newlabel{fig:de_dist}{{6}{14}{$\Delta E_{00}$ perceptual error distribution. The right tail characterizes worst-case behavior under PPP-sampled drift}{figure.caption.10}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces TAC distribution across the evaluation dataset, including the fraction exceeding the PPP threshold.}}{14}{figure.caption.11}\protected@file@percent }
-\newlabel{fig:tac_dist}{{7}{14}{TAC distribution across the evaluation dataset, including the fraction exceeding the PPP threshold}{figure.caption.11}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces K-Channel (Black Ink) Usage Distribution across Separation Candidates.}}{14}{figure.caption.12}\protected@file@percent }
-\newlabel{fig:k_dist}{{8}{14}{K-Channel (Black Ink) Usage Distribution across Separation Candidates}{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Secondary Metrics}{14}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Quantitative Results}{14}{subsection.4.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Quantitative Performance Comparison}}{14}{table.caption.8}\protected@file@percent }
+\newlabel{tab:quant_results}{{2}{14}{Quantitative Performance Comparison}{table.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Visual Results}{14}{subsection.4.7}\protected@file@percent }
 \bibcite{ulichney}{1}
 \bibcite{rodriguez}{2}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Percentile Analysis (Robustness)}}{15}{table.caption.9}\protected@file@percent }
+\newlabel{tab:percentile_robustness}{{3}{15}{Percentile Analysis (Robustness)}{table.caption.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Qualitative Comparison of Separation Outcomes}}{15}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:visual_comparison}{{5}{15}{Qualitative Comparison of Separation Outcomes}{figure.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Distribution Analysis}{15}{subsection.4.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces $\Delta E_{00}$ perceptual error distribution. The right tail characterizes worst-case behavior under PPP-sampled drift.}}{15}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:de_dist}{{6}{15}{$\Delta E_{00}$ perceptual error distribution. The right tail characterizes worst-case behavior under PPP-sampled drift}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Ablation and Failure Analysis}{15}{subsection.4.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.10}Discussion}{15}{subsection.4.10}\protected@file@percent }
 \bibcite{zeng}{3}
 \bibcite{marcu}{4}
 \bibcite{chen}{5}
@@ -73,10 +71,12 @@
 \bibcite{icc}{7}
 \bibcite{kingma}{8}
 \bibcite{sohn}{9}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Ablation and Failure Analysis}{15}{subsection.4.9}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Ablation Study Results}}{15}{table.caption.13}\protected@file@percent }
-\newlabel{tab:ablation}{{4}{15}{Ablation Study Results}{table.caption.13}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.10}Discussion}{15}{subsection.4.10}\protected@file@percent }
 \bibcite{luo}{10}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces TAC distribution across the evaluation dataset, including the fraction exceeding the PPP threshold.}}{16}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:tac_dist}{{7}{16}{TAC distribution across the evaluation dataset, including the fraction exceeding the PPP threshold}{figure.caption.12}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces K-Channel (Black Ink) Usage Distribution across Separation Candidates.}}{16}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:k_dist}{{8}{16}{K-Channel (Black Ink) Usage Distribution across Separation Candidates}{figure.caption.13}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Ablation Study Results}}{16}{table.caption.14}\protected@file@percent }
+\newlabel{tab:ablation}{{4}{16}{Ablation Study Results}{table.caption.14}{}}
 \bibcite{kipphan}{11}
-\gdef \@abspage@last{16}
+\gdef \@abspage@last{17}

@@ -8,7 +8,7 @@ The repository has been restructured to be self-contained within `robustsep_pkg`
 *   `robustsep_pkg/data/`: staged shard readers, split manifests, training adapter, enrichment.
 *   `robustsep_pkg/preprocess/`: RGB/Lab conversion, alpha-aware patches, intent maps, structure tokens.
 *   `robustsep_pkg/targets/`: CMYKOGV initialization, two-stage target generation, target manifests.
-*   `robustsep_pkg/surrogate_data/`: forward-surrogate example and shard writer.
+*   `robustsep_pkg/surrogate_data/`: forward-surrogate v2 local-delta examples and shard writer.
 *   `robustsep_pkg/models/`: surrogate CNN, conditional VAE proposer, conditioning, refiner utilities.
 *   `scripts/`: repository-level dataset and ICC preparation scripts.
 *   `robustsep_pkg/docs/`: Documentation.
@@ -60,6 +60,11 @@ PYTHONPATH=. .venv/bin/python -m robustsep_pkg.cli train-surrogate \
 
 PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
 ```
+
+New surrogate shards are `surrogate-shards-v2`: they store `lab_ref_center`,
+`teacher_lab_nominal`, and `teacher_lab_drifted`, and train the Micro-CNN to predict local
+`DeltaLab`. `surrogate-shards-v1` artifacts and checkpoints remain inspectable for debugging
+but must not be used to unlock VAE training or hybrid target generation.
 
 The VAE proposer training CLI is still a future step; the current CLI covers target
 generation, surrogate shard generation, surrogate training, and surrogate gate evaluation.
