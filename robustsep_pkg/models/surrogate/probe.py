@@ -10,6 +10,7 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise ImportError("Surrogate candidate probe requires PyTorch. Install torch to use this module.") from exc
 
+from robustsep_pkg.core.seeding import derive_seed
 from robustsep_pkg.core.config import DriftConfig
 from robustsep_pkg.eval.metrics import delta_e_00, finite_quantile
 from robustsep_pkg.models.conditioning.drift import DriftSample, apply_drift, sample_drift_bank
@@ -39,6 +40,7 @@ class CandidateProbeConfig:
     ink_noise_scale: float = 0.012
     drift_config: DriftConfig = field(default_factory=DriftConfig)
     prediction_mode: str = "auto"
+    tie_margin_delta_e00: float = 0.10
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,9 @@ class CandidateProbeMetrics:
     q90_regret_delta_e00: float = 0.0
     mean_teacher_margin_delta_e00: float = 0.0
     q90_teacher_margin_delta_e00: float = 0.0
+    strict_spearman: float = 0.0
+    strict_top1_agreement: float = 0.0
+    tie_patch_fraction: float = 0.0
 
     def to_dict(self) -> dict[str, float | int | bool]:
         return asdict(self)
@@ -85,17 +90,21 @@ def evaluate_candidate_probe(
     torch_device = torch.device(device)
     ppp = dataset.ppp
     drift_bank = _fixed_family_drift_bank(ppp, config)
-    patch_count = _patch_count(len(dataset), config.max_patches)
+    dataset_indices = _probe_dataset_indices(dataset, config)
+    patch_count = int(dataset_indices.size)
 
     pixel_errors: list[np.ndarray] = []
     spearman_values: list[float] = []
+    strict_spearman_values: list[float] = []
     regrets: list[float] = []
     teacher_margins: list[float] = []
     top1_matches = 0
+    strict_top1_matches = 0
+    tie_patch_count = 0
 
-    for dataset_index in range(patch_count):
-        sample = dataset[dataset_index]
-        source_id = _sample_source_id(sample, dataset_index)
+    for dataset_index in dataset_indices.tolist():
+        sample = dataset[int(dataset_index)]
+        source_id = _sample_source_id(sample, int(dataset_index))
         context = sample["cmykogv_context"].numpy().astype(np.float32)
         lab_ref = sample["lab_center"].numpy().astype(np.float32)
         candidate_contexts = generate_lambda_probe_contexts(
@@ -116,9 +125,12 @@ def evaluate_candidate_probe(
         )
         pixel_errors.append(probe["pixel_errors"])
         spearman_values.append(float(probe["spearman"]))
+        strict_spearman_values.append(float(probe["strict_spearman"]))
         regrets.append(float(probe["regret"]))
         teacher_margins.append(float(probe["teacher_margin"]))
         top1_matches += int(probe["top1_match"])
+        strict_top1_matches += int(probe["strict_top1_match"])
+        tie_patch_count += int(probe["tie_patch"])
 
     if patch_count == 0:
         return CandidateProbeMetrics(
@@ -134,6 +146,9 @@ def evaluate_candidate_probe(
             patches_evaluated=0,
             candidates_per_patch=len(config.lambda_values),
             drifts_per_candidate=config.drift_sample_count,
+            strict_spearman=0.0,
+            strict_top1_agreement=0.0,
+            tie_patch_fraction=0.0,
         )
 
     flat_errors = np.concatenate(pixel_errors, axis=0)
@@ -150,6 +165,9 @@ def evaluate_candidate_probe(
         patches_evaluated=patch_count,
         candidates_per_patch=len(config.lambda_values),
         drifts_per_candidate=config.drift_sample_count,
+        strict_spearman=float(np.mean(strict_spearman_values)) if strict_spearman_values else 0.0,
+        strict_top1_agreement=float(strict_top1_matches / patch_count),
+        tie_patch_fraction=float(tie_patch_count / patch_count),
     )
 
 
@@ -231,18 +249,16 @@ def _evaluate_one_patch(
         [finite_quantile(np.asarray(values, dtype=np.float32), config.risk_q) for values in surrogate_risk_by_candidate],
         dtype=np.float32,
     )
-    teacher_order = np.argsort(teacher_risk, kind="mergesort")
-    surrogate_order = np.argsort(surrogate_risk, kind="mergesort")
-    teacher_best = int(teacher_order[0])
-    surrogate_best = int(surrogate_order[0])
-    teacher_margin = float(teacher_risk[teacher_order[1]] - teacher_risk[teacher_order[0]]) if teacher_order.size > 1 else 0.0
-    regret = float(max(0.0, teacher_risk[surrogate_best] - teacher_risk[teacher_best]))
+    ranking = _ranking_summary(teacher_risk, surrogate_risk, tie_margin_delta_e00=config.tie_margin_delta_e00)
     return {
         "pixel_errors": pixel_errors.astype(np.float32),
-        "spearman": _spearman(teacher_risk, surrogate_risk),
-        "top1_match": int(teacher_best == surrogate_best),
-        "teacher_margin": teacher_margin,
-        "regret": regret,
+        "spearman": ranking["spearman"],
+        "strict_spearman": ranking["strict_spearman"],
+        "top1_match": ranking["top1_match"],
+        "strict_top1_match": ranking["strict_top1_match"],
+        "teacher_margin": ranking["teacher_margin"],
+        "regret": ranking["regret"],
+        "tie_patch": ranking["tie_patch"],
     }
 
 
@@ -300,6 +316,27 @@ def _patch_count(dataset_len: int, max_patches: int | None) -> int:
     return min(dataset_len, max_patches)
 
 
+def _probe_dataset_indices(dataset: SurrogateTrainingDataset, config: CandidateProbeConfig) -> np.ndarray:
+    patch_count = _patch_count(len(dataset), config.max_patches)
+    if patch_count == 0:
+        return np.zeros((0,), dtype=np.int64)
+    if patch_count >= len(dataset):
+        return np.arange(len(dataset), dtype=np.int64)
+    manifest_hash = str(dataset.manifest.get("manifest_hash", dataset.ppp.hash))
+    seed = derive_seed(
+        config.root_seed,
+        manifest_hash,
+        dataset.ppp.hash,
+        "surrogate_quality_gate_patch_subset",
+        patch_coord=str(patch_count),
+    )
+    rng = np.random.default_rng(seed)
+    order = np.arange(len(dataset), dtype=np.int64)
+    rng.shuffle(order)
+    subset = np.sort(order[:patch_count])
+    return subset.astype(np.int64, copy=False)
+
+
 def _sample_source_id(sample: dict[str, Any], dataset_index: int) -> str:
     for key in ("source_id", "target_hash", "drift_hash"):
         value = sample.get(key)
@@ -336,6 +373,34 @@ def _spearman(a: np.ndarray, b: np.ndarray) -> float:
     if denom <= 1e-12:
         return 1.0 if np.allclose(a, b) else 0.0
     return float(np.sum(ra * rb) / denom)
+
+
+def _ranking_summary(
+    teacher_risk: np.ndarray,
+    surrogate_risk: np.ndarray,
+    *,
+    tie_margin_delta_e00: float,
+) -> dict[str, float | int]:
+    teacher_order = np.argsort(teacher_risk, kind="mergesort")
+    surrogate_order = np.argsort(surrogate_risk, kind="mergesort")
+    teacher_best = int(teacher_order[0])
+    surrogate_best = int(surrogate_order[0])
+    teacher_margin = float(teacher_risk[teacher_order[1]] - teacher_risk[teacher_order[0]]) if teacher_order.size > 1 else 0.0
+    regret = float(max(0.0, teacher_risk[surrogate_best] - teacher_risk[teacher_best]))
+    strict_spearman = _spearman(teacher_risk, surrogate_risk)
+    strict_top1_match = int(teacher_best == surrogate_best)
+    tie_patch = int(teacher_margin <= float(tie_margin_delta_e00))
+    tolerant_top1_match = int(strict_top1_match or regret <= float(tie_margin_delta_e00))
+    tolerant_spearman = 1.0 if tie_patch else strict_spearman
+    return {
+        "teacher_margin": teacher_margin,
+        "regret": regret,
+        "strict_spearman": strict_spearman,
+        "spearman": tolerant_spearman,
+        "strict_top1_match": strict_top1_match,
+        "top1_match": tolerant_top1_match,
+        "tie_patch": tie_patch,
+    }
 
 
 def _average_ranks(values: np.ndarray) -> np.ndarray:

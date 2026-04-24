@@ -68,6 +68,9 @@ class SurrogateQualityMetrics:
     q90_regret_delta_e00: float = 0.0
     mean_teacher_margin_delta_e00: float = 0.0
     q90_teacher_margin_delta_e00: float = 0.0
+    strict_spearman: float = 0.0
+    strict_top1_agreement: float = 0.0
+    tie_patch_fraction: float = 0.0
 
     def to_dict(self) -> dict[str, float | int | bool]:
         return asdict(self)
@@ -308,6 +311,9 @@ def evaluate_surrogate_quality(
         q90_regret_delta_e00=probe.q90_regret_delta_e00,
         mean_teacher_margin_delta_e00=probe.mean_teacher_margin_delta_e00,
         q90_teacher_margin_delta_e00=probe.q90_teacher_margin_delta_e00,
+        strict_spearman=probe.strict_spearman,
+        strict_top1_agreement=probe.strict_top1_agreement,
+        tie_patch_fraction=probe.tie_patch_fraction,
         passed=(
             mean <= thresholds.threshold_mean
             and q90 <= thresholds.threshold_q90

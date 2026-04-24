@@ -10,6 +10,8 @@ from robustsep_pkg.models.surrogate.data import SurrogateTrainingDataset
 from robustsep_pkg.models.surrogate.model import ForwardSurrogateCNN
 from robustsep_pkg.models.surrogate.probe import (
     CandidateProbeConfig,
+    _probe_dataset_indices,
+    _ranking_summary,
     evaluate_candidate_probe,
     generate_lambda_probe_contexts,
 )
@@ -79,6 +81,35 @@ class SurrogateCandidateProbeTests(unittest.TestCase):
         self.assertLessEqual(metrics.top1_agreement, 1.0)
         self.assertGreaterEqual(metrics.spearman, -1.0)
         self.assertLessEqual(metrics.spearman, 1.0)
+        self.assertGreaterEqual(metrics.strict_top1_agreement, 0.0)
+        self.assertLessEqual(metrics.strict_top1_agreement, 1.0)
+        self.assertGreaterEqual(metrics.tie_patch_fraction, 0.0)
+        self.assertLessEqual(metrics.tie_patch_fraction, 1.0)
+
+    def test_probe_dataset_indices_is_deterministic_and_not_prefix_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            manifest_path = self._write_manifest(Path(td))
+            dataset = SurrogateTrainingDataset(manifest_path)
+            config = CandidateProbeConfig(max_patches=4)
+            a = _probe_dataset_indices(dataset, config)
+            b = _probe_dataset_indices(dataset, config)
+
+        self.assertEqual(a.tolist(), b.tolist())
+        self.assertEqual(len(a), 4)
+        self.assertNotEqual(a.tolist(), list(range(4)))
+
+    def test_ranking_summary_relaxes_tie_cases_but_keeps_strict_metrics(self) -> None:
+        teacher_risk = np.asarray([0.50, 0.54, 0.80], dtype=np.float32)
+        surrogate_risk = np.asarray([0.55, 0.49, 0.81], dtype=np.float32)
+
+        summary = _ranking_summary(teacher_risk, surrogate_risk, tie_margin_delta_e00=0.10)
+
+        self.assertEqual(summary["strict_top1_match"], 0)
+        self.assertEqual(summary["top1_match"], 1)
+        self.assertEqual(summary["tie_patch"], 1)
+        self.assertLess(float(summary["strict_spearman"]), 1.0)
+        self.assertEqual(float(summary["spearman"]), 1.0)
+        self.assertAlmostEqual(float(summary["regret"]), 0.04, places=5)
 
 
 if __name__ == "__main__":

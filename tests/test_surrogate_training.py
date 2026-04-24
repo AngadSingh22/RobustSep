@@ -110,6 +110,10 @@ class SurrogateTrainingTests(unittest.TestCase):
             self.assertEqual(result.quality.probe_patches_evaluated, 1)
             self.assertEqual(result.quality.probe_candidates_per_patch, 5)
             self.assertEqual(result.quality.probe_drifts_per_candidate, 2)
+            self.assertGreaterEqual(result.quality.strict_top1_agreement, 0.0)
+            self.assertLessEqual(result.quality.strict_top1_agreement, 1.0)
+            self.assertGreaterEqual(result.quality.tie_patch_fraction, 0.0)
+            self.assertLessEqual(result.quality.tie_patch_fraction, 1.0)
             self.assertTrue(result.quality.passed)
 
     def test_gate_diagnosis_maps_failures_to_actions(self) -> None:

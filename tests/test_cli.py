@@ -70,6 +70,35 @@ class RobustSepCliTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertTrue((out_dir / "surrogate_training_manifest.json").exists())
 
+    def test_write_proposer_shards_cli_smoke(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            split_manifest = _write_pipeline_fixture(root, n=2)
+            out_dir = root / "proposer"
+            rc = main(
+                [
+                    "write-proposer-shards",
+                    "--split-manifest",
+                    str(split_manifest),
+                    "--root",
+                    str(root),
+                    "--out-dir",
+                    str(out_dir),
+                    "--max-records",
+                    "1",
+                    "--drift-samples-per-patch",
+                    "1",
+                    "--shard-size",
+                    "1",
+                    "--stage1-steps",
+                    "1",
+                    "--stage2-steps",
+                    "1",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            self.assertTrue((out_dir / "proposer_training_manifest.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

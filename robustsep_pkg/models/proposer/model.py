@@ -183,7 +183,7 @@ class ConditionalVAEProposer(nn.Module):
             intent_raster=intent_raster,
             lambda_value=lambda_value,
         )
-        x = build_proposer_input(rgb_patch, alpha, intent_weights, intent_raster)
+        x = self.build_input(rgb_patch, alpha, intent_weights, intent_raster)
         mean, logvar = self.encode(x, cond)
         latent = z if z is not None else self.reparameterize(mean, logvar)
         return ProposerOutput(cmykogv=self.decode(latent, cond), latent_mean=mean, latent_logvar=logvar)
@@ -192,6 +192,15 @@ class ConditionalVAEProposer(nn.Module):
     def reparameterize(mean: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * logvar)
         return mean + torch.randn_like(std) * std
+
+    @staticmethod
+    def build_input(
+        rgb_patch: torch.Tensor,
+        alpha: torch.Tensor,
+        intent_weights: torch.Tensor,
+        intent_raster: torch.Tensor,
+    ) -> torch.Tensor:
+        return build_proposer_input(rgb_patch, alpha, intent_weights, intent_raster)
 
 
 def build_proposer_input(rgb_patch: torch.Tensor, alpha: torch.Tensor, intent_weights: torch.Tensor, intent_raster: torch.Tensor) -> torch.Tensor:

@@ -9,6 +9,7 @@ from robustsep_pkg.core.artifact_io import canonical_json, write_json
 from robustsep_pkg.core.config import DriftConfig
 from robustsep_pkg.data import FamilyDataset, RobustSepDataset, SourceWeightPolicy, TrainingAdapter
 from robustsep_pkg.models.conditioning.ppp import PPP
+from robustsep_pkg.proposer_data import ProposerShardWriterConfig, write_proposer_training_shards
 from robustsep_pkg.surrogate_data import SurrogateShardWriterConfig, write_surrogate_training_shards
 from robustsep_pkg.targets import TargetGenerationPipelineConfig, TargetSolverConfig, iter_generated_target_records
 
@@ -43,6 +44,14 @@ def main(argv: list[str] | None = None) -> int:
     shards.add_argument("--summary-out", help="Optional JSON summary path")
     shards.set_defaults(func=_cmd_write_surrogate_shards)
 
+    proposer_shards = sub.add_parser("write-proposer-shards", help="Generate targets and write proposer training shards")
+    _add_target_args(proposer_shards)
+    proposer_shards.add_argument("--out-dir", required=True, help="Output directory for proposer shard .npz/.jsonl files")
+    proposer_shards.add_argument("--shard-size", type=int, default=4096)
+    proposer_shards.add_argument("--run-id", default="proposer_training_shards")
+    proposer_shards.add_argument("--summary-out", help="Optional JSON summary path")
+    proposer_shards.set_defaults(func=_cmd_write_proposer_shards)
+
     train = sub.add_parser("train-surrogate", help="Train the forward surrogate and run the quality gate")
     train.add_argument("--manifest", required=True, help="Surrogate training manifest JSON")
     train.add_argument("--out-dir", required=True)
@@ -68,6 +77,27 @@ def main(argv: list[str] | None = None) -> int:
     gate.add_argument("--batch-size", type=int, default=32)
     _add_gate_args(gate)
     gate.set_defaults(func=_cmd_eval_surrogate_gate)
+
+    proposer_train = sub.add_parser("train-proposer", help="Train the conditional VAE proposer")
+    proposer_train.add_argument("--manifest", required=True, help="Proposer training manifest JSON")
+    proposer_train.add_argument("--out-dir", required=True)
+    proposer_train.add_argument("--batch-size", type=int, default=32)
+    proposer_train.add_argument("--epochs", type=int, default=1)
+    proposer_train.add_argument("--learning-rate", type=float, default=1e-3)
+    proposer_train.add_argument("--weight-decay", type=float, default=1e-4)
+    proposer_train.add_argument("--num-workers", type=int, default=0)
+    proposer_train.add_argument("--seed", type=int, default=20260422)
+    proposer_train.add_argument("--device", default="auto")
+    proposer_train.add_argument("--initial-checkpoint", default=None)
+    proposer_train.add_argument("--lambda-values", default="0.1,0.5,0.9")
+    proposer_train.add_argument("--recon-lambda-index", type=int, default=1)
+    proposer_train.add_argument("--kl-max-weight", type=float, default=1e-3)
+    proposer_train.add_argument("--kl-warmup-fraction", type=float, default=0.10)
+    proposer_train.add_argument("--appearance-weight", type=float, default=0.0)
+    proposer_train.add_argument("--appearance-mode", default="none", choices=("none", "teacher_proxy"))
+    proposer_train.add_argument("--monotonicity-weight", type=float, default=0.1)
+    proposer_train.add_argument("--monotonicity-margin", type=float, default=0.0)
+    proposer_train.set_defaults(func=_cmd_train_proposer)
 
     paper_eval = sub.add_parser("run-paper-eval", help="Run the paper Evaluation-section metric suite")
     _add_target_args(paper_eval)
@@ -185,6 +215,20 @@ def _cmd_write_surrogate_shards(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_write_proposer_shards(args: argparse.Namespace) -> int:
+    ppp = _ppp_from_args(args)
+    config = _target_pipeline_config(args)
+    summary = write_proposer_training_shards(
+        _limit(iter_generated_target_records(args.split_manifest, ppp, root=args.root, config=config), args.max_records),
+        args.out_dir,
+        ppp,
+        config=ProposerShardWriterConfig(shard_size=args.shard_size, run_id=args.run_id),
+    ).to_dict()
+    _write_optional_summary(args.summary_out, summary)
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
 def _cmd_train_surrogate(args: argparse.Namespace) -> int:
     from robustsep_pkg.models.surrogate.probe import CandidateProbeConfig
     from robustsep_pkg.models.surrogate.training import (
@@ -218,6 +262,45 @@ def _cmd_train_surrogate(args: argparse.Namespace) -> int:
             target_mode=args.loss_target_mode,
             hard_pixel_weight=args.hard_pixel_weight,
             hard_pixel_quantile=args.hard_pixel_quantile,
+        ),
+    )
+    print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    return 0
+
+
+def _cmd_train_proposer(args: argparse.Namespace) -> int:
+    from robustsep_pkg.models.proposer.losses import ProposerLossWeights
+    from robustsep_pkg.models.proposer.training import (
+        ProposerOptimizationConfig,
+        ProposerTrainingConfig,
+        train_proposer,
+    )
+
+    result = train_proposer(
+        args.manifest,
+        args.out_dir,
+        training_config=ProposerTrainingConfig(
+            batch_size=args.batch_size,
+            epochs=args.epochs,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            num_workers=args.num_workers,
+            seed=args.seed,
+            device=args.device,
+            initial_checkpoint=args.initial_checkpoint,
+        ),
+        optimization_config=ProposerOptimizationConfig(
+            loss_weights=ProposerLossWeights(
+                ink=1.0,
+                kl=args.kl_max_weight,
+                appearance=args.appearance_weight,
+                lambda_monotonicity=args.monotonicity_weight,
+            ),
+            kl_warmup_fraction=args.kl_warmup_fraction,
+            lambda_values=tuple(_parse_float_list(args.lambda_values)),
+            recon_lambda_index=args.recon_lambda_index,
+            monotonicity_margin=args.monotonicity_margin,
+            appearance_mode=args.appearance_mode,
         ),
     )
     print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
@@ -293,6 +376,13 @@ def _parse_mapping(value: str, flag: str) -> tuple[str, str]:
 def _parse_float_mapping(value: str, flag: str) -> tuple[str, float]:
     key, val = _parse_mapping(value, flag)
     return key, float(val)
+
+
+def _parse_float_list(value: str) -> list[float]:
+    items = [part.strip() for part in str(value).split(",") if part.strip()]
+    if not items:
+        raise SystemExit("--lambda-values must contain at least one float")
+    return [float(item) for item in items]
 
 
 def _ppp_from_args(args: argparse.Namespace) -> PPP:
